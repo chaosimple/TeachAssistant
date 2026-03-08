@@ -3,6 +3,12 @@
  * 处理排行榜和频次图展示
  */
 const StatisticsModule = {
+    // 排序状态存储
+    sortState: {
+        weekly: { field: 'count', order: 'desc' },
+        semester: { field: 'id', order: 'asc' }
+    },
+
     /**
      * 获取本周的周次
      * @returns {number|null} 当前周次
@@ -73,6 +79,99 @@ const StatisticsModule = {
     },
 
     /**
+     * 排序频次图
+     * @param {string} type - 'weekly' 或 'semester'
+     * @param {string} field - 排序字段: 'rank', 'id', 'name', 'count'
+     */
+    sortChart(type, field) {
+        const currentState = this.sortState[type];
+
+        // 切换排序方向：如果点击同一字段，则切换方向
+        if (currentState.field === field) {
+            currentState.order = currentState.order === 'asc' ? 'desc' : 'asc';
+        } else {
+            // 切换字段时，设置默认方向
+            currentState.field = field;
+            // 编号、学号、姓名默认升序，互动次数默认降序
+            currentState.order = (field === 'count') ? 'desc' : 'asc';
+        }
+
+        // 更新表头样式
+        this.updateSortButtons(type, field, currentState.order);
+
+        // 重新渲染图表
+        if (type === 'weekly') {
+            this.renderWeeklyChart();
+        } else {
+            this.renderSemesterChart();
+        }
+    },
+
+    /**
+     * 更新排序按钮样式
+     * @param {string} type - 'weekly' 或 'semester'
+     * @param {string} activeField - 当前排序字段
+     * @param {string} order - 排序方向
+     */
+    updateSortButtons(type, activeField, order) {
+        const containerId = type === 'weekly' ? 'weeklyChartContainer' : 'semesterChartContainer';
+        const container = document.getElementById(containerId);
+
+        // 移除所有活动状态
+        container.querySelectorAll('.sortable').forEach(el => {
+            el.classList.remove('sort-asc-active', 'sort-desc-active');
+            el.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
+        });
+
+        // 设置当前排序字段的活动状态
+        const activeHeader = container.querySelector(`[data-sort="${activeField}"]`);
+        if (activeHeader) {
+            activeHeader.classList.add(order === 'asc' ? 'sort-asc-active' : 'sort-desc-active');
+            const btnClass = order === 'asc' ? '.sort-asc' : '.sort-desc';
+            const activeBtn = activeHeader.querySelector(btnClass);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
+        }
+    },
+
+    /**
+     * 根据当前排序状态排序数据
+     * @param {Array} stats - 统计数据
+     * @param {string} type - 'weekly' 或 'semester'
+     * @returns {Array} 排序后的数据
+     */
+    sortStats(stats, type) {
+        const { field, order } = this.sortState[type];
+        const multiplier = order === 'asc' ? 1 : -1;
+
+        const sortedStats = [...stats].sort((a, b) => {
+            let comparison = 0;
+
+            switch (field) {
+                case 'id':
+                    comparison = a.id.localeCompare(b.id, 'zh-CN');
+                    break;
+                case 'name':
+                    comparison = a.name.localeCompare(b.name, 'zh-CN');
+                    break;
+                case 'count':
+                    comparison = a.interactionCount - b.interactionCount;
+                    break;
+                case 'rank':
+                default:
+                    // 按原始顺序（学号排序）
+                    comparison = a.id.localeCompare(b.id, 'zh-CN');
+                    break;
+            }
+
+            return comparison * multiplier;
+        });
+
+        return sortedStats;
+    },
+
+    /**
      * 渲染排行榜（通用方法）
      * @param {Array} stats - 统计数据
      * @param {string} containerId - 容器ID
@@ -134,9 +233,9 @@ const StatisticsModule = {
      * @param {Array} stats - 统计数据
      * @param {string} containerId - 容器ID
      * @param {string} emptyTipId - 空提示ID
-     * @param {boolean} keepOrder - 是否保持原始顺序（用于按学号排序）
+     * @param {string} type - 'weekly' 或 'semester'，用于确定排序状态
      */
-    renderChart(stats, containerId, emptyTipId, keepOrder = false) {
+    renderChart(stats, containerId, emptyTipId, type = 'weekly') {
         const container = document.getElementById(containerId);
         const emptyTip = document.getElementById(emptyTipId);
 
@@ -148,11 +247,11 @@ const StatisticsModule = {
 
         emptyTip.style.display = 'none';
 
-        // 计算最大互动次数用于缩放（至少为1，避免没有数据时除零）
-        const maxInteraction = Math.max(...stats.map(s => s.interactionCount), 1);
+        // 根据排序状态排序数据
+        const sortedStats = this.sortStats(stats, type);
 
-        // 是否保持原始顺序
-        const sortedStats = keepOrder ? stats : [...stats].sort((a, b) => b.interactionCount - a.interactionCount);
+        // 计算最大互动次数用于缩放（至少为1，避免没有数据时除零）
+        const maxInteraction = Math.max(...sortedStats.map(s => s.interactionCount), 1);
 
         const html = sortedStats.map((student, index) => {
             const percentage = maxInteraction > 0 ? (student.interactionCount / maxInteraction) * 100 : 0;
@@ -175,6 +274,11 @@ const StatisticsModule = {
         }).join('');
 
         container.innerHTML = html;
+
+        // 更新排序按钮状态
+        const containerParent = container.parentElement;
+        const sortType = containerId.includes('weekly') ? 'weekly' : 'semester';
+        this.updateSortButtons(sortType, this.sortState[sortType].field, this.sortState[sortType].order);
     },
 
     /**
@@ -200,16 +304,15 @@ const StatisticsModule = {
      */
     renderWeeklyChart() {
         const stats = this.getWeeklyStudentStats();
-        this.renderChart(stats, 'weeklyChartBody', 'emptyWeeklyChartTip');
+        this.renderChart(stats, 'weeklyChartBody', 'emptyWeeklyChartTip', 'weekly');
     },
 
     /**
-     * 渲染本学期频次图（按学号排序，显示所有学生）
+     * 渲染本学期频次图
      */
     renderSemesterChart() {
         const stats = this.getSemesterStudentStats();
-        // keepOrder = true，保持按学号排序的原始顺序
-        this.renderChart(stats, 'semesterChartBody', 'emptySemesterChartTip', true);
+        this.renderChart(stats, 'semesterChartBody', 'emptySemesterChartTip', 'semester');
     },
 
     /**
@@ -233,9 +336,14 @@ const StatisticsModule = {
             // 本周最高分
             const highestScore = Math.max(...weeklyRecords.map(r => r.score));
             document.getElementById('weeklyHighestScore').textContent = highestScore;
+
+            // 本周最低分
+            const lowestScore = Math.min(...weeklyRecords.map(r => r.score));
+            document.getElementById('weeklyLowestScore').textContent = lowestScore;
         } else {
             document.getElementById('weeklyAvgScore').textContent = '0';
             document.getElementById('weeklyHighestScore').textContent = '0';
+            document.getElementById('weeklyLowestScore').textContent = '0';
         }
     },
 

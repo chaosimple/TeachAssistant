@@ -292,10 +292,28 @@
                             <div class="horizontal-chart-container" id="weeklyChartContainer">
                                 <div class="chart-header">
                                     <span class="chart-header-rank">编号</span>
-                                    <span class="chart-header-id">学号</span>
-                                    <span class="chart-header-name">姓名</span>
+                                    <span class="chart-header-id sortable" data-sort="id" data-order="asc" onclick="StatisticsModule.sortChart('weekly', 'id')">
+                                        学号
+                                        <span class="sort-buttons">
+                                            <span class="sort-btn sort-asc">▲</span>
+                                            <span class="sort-btn sort-desc">▼</span>
+                                        </span>
+                                    </span>
+                                    <span class="chart-header-name sortable" data-sort="name" data-order="asc" onclick="StatisticsModule.sortChart('weekly', 'name')">
+                                        姓名
+                                        <span class="sort-buttons">
+                                            <span class="sort-btn sort-asc">▲</span>
+                                            <span class="sort-btn sort-desc">▼</span>
+                                        </span>
+                                    </span>
                                     <div class="chart-header-bars">
-                                        <span class="chart-x-label">互动次数</span>
+                                        <span class="chart-x-label sortable" data-sort="count" data-order="desc" onclick="StatisticsModule.sortChart('weekly', 'count')">
+                                            互动次数
+                                            <span class="sort-buttons">
+                                                <span class="sort-btn sort-asc">▲</span>
+                                                <span class="sort-btn sort-desc">▼</span>
+                                            </span>
+                                        </span>
                                     </div>
                                 </div>
                                 <div class="chart-body" id="weeklyChartBody">
@@ -331,6 +349,13 @@
                                 <span class="summary-label">本周最高分</span>
                             </div>
                         </div>
+                        <div class="summary-card">
+                            <div class="summary-icon">📉</div>
+                            <div class="summary-info">
+                                <span class="summary-value" id="weeklyLowestScore">0</span>
+                                <span class="summary-label">本周最低分</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -363,10 +388,28 @@
                             <div class="horizontal-chart-container" id="semesterChartContainer">
                                 <div class="chart-header">
                                     <span class="chart-header-rank">编号</span>
-                                    <span class="chart-header-id">学号</span>
-                                    <span class="chart-header-name">姓名</span>
+                                    <span class="chart-header-id sortable" data-sort="id" data-order="asc" onclick="StatisticsModule.sortChart('semester', 'id')">
+                                        学号
+                                        <span class="sort-buttons">
+                                            <span class="sort-btn sort-asc">▲</span>
+                                            <span class="sort-btn sort-desc">▼</span>
+                                        </span>
+                                    </span>
+                                    <span class="chart-header-name sortable" data-sort="name" data-order="asc" onclick="StatisticsModule.sortChart('semester', 'name')">
+                                        姓名
+                                        <span class="sort-buttons">
+                                            <span class="sort-btn sort-asc">▲</span>
+                                            <span class="sort-btn sort-desc">▼</span>
+                                        </span>
+                                    </span>
                                     <div class="chart-header-bars">
-                                        <span class="chart-x-label">互动次数</span>
+                                        <span class="chart-x-label sortable" data-sort="count" data-order="desc" onclick="StatisticsModule.sortChart('semester', 'count')">
+                                            互动次数
+                                            <span class="sort-buttons">
+                                                <span class="sort-btn sort-asc">▲</span>
+                                                <span class="sort-btn sort-desc">▼</span>
+                                            </span>
+                                        </span>
                                     </div>
                                 </div>
                                 <div class="chart-body" id="semesterChartBody">

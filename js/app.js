@@ -324,7 +324,8 @@ const App = {
             return;
         }
 
-        const today = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         ExcelModule.exportFullBackup(data, `课堂互动系统数据_${today}.xlsx`);
         this.markDataSaved();
         showToast('数据备份成功', 'success');

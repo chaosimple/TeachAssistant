@@ -65,19 +65,27 @@ const AttendanceModule = {
     },
 
     /**
-     * 获取今日日期字符串
+     * 获取今日日期字符串（本地时间）
      * @returns {string} YYYY-MM-DD格式
      */
     getToday() {
-        return new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     },
 
     /**
-     * 获取当前时间字符串
+     * 获取当前时间字符串（本地时间）
      * @returns {string} HH:MM:SS格式
      */
     getCurrentTime() {
-        return new Date().toTimeString().split(' ')[0];
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        return `${hours}:${minutes}:${seconds}`;
     },
 
     /**

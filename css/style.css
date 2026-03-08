@@ -1987,6 +1987,53 @@ body {
     padding-right: 60px;
 }
 
+/* 排序按钮样式 */
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sortable:hover {
+    color: var(--primary-color);
+}
+
+.sort-buttons {
+    display: inline-flex;
+    flex-direction: column;
+    line-height: 1;
+    margin-left: 2px;
+}
+
+.sort-btn {
+    font-size: 8px;
+    opacity: 0.4;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.sort-btn.sort-asc {
+    margin-bottom: -2px;
+}
+
+.sort-btn:hover {
+    opacity: 0.8;
+}
+
+.sort-btn.active {
+    opacity: 1;
+    color: var(--primary-color);
+}
+
+.sortable.sort-asc-active .sort-asc,
+.sortable.sort-desc-active .sort-desc {
+    opacity: 1;
+    color: var(--primary-color);
+}
+
 .chart-body {
     flex: 1;
     overflow-y: auto;

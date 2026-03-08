@@ -7,6 +7,18 @@ const SettingsModule = {
     STORAGE_KEY: 'classroom_settings',
 
     /**
+     * 解析 YYYY-MM-DD 格式的日期为本地时间（避免时区偏移问题）
+     * JavaScript 的 new Date("YYYY-MM-DD") 会按 UTC 解析，在中国时区会偏移 8 小时
+     * @param {string} dateStr - 日期字符串
+     * @returns {Date|null} 本地时间的 Date 对象
+     */
+    parseLocalDate(dateStr) {
+        if (!dateStr) return null;
+        const [year, month, day] = dateStr.split('-').map(Number);
+        return new Date(year, month - 1, day);
+    },
+
+    /**
      * 获取设置数据
      * @returns {Object} 设置对象
      */
@@ -52,11 +64,15 @@ const SettingsModule = {
     },
 
     /**
-     * 获取当前日期
+     * 获取当前日期（本地时间）
      * @returns {string} YYYY-MM-DD格式
      */
     getToday() {
-        return new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     },
 
     /**
@@ -67,8 +83,8 @@ const SettingsModule = {
         const settings = this.getSettings();
         if (!settings.semesterStart) return null;
 
-        const startDate = new Date(settings.semesterStart);
-        const today = new Date(this.getToday());
+        const startDate = this.parseLocalDate(settings.semesterStart);
+        const today = this.parseLocalDate(this.getToday());
 
         // 计算天数差
         const diffTime = today.getTime() - startDate.getTime();
@@ -89,8 +105,8 @@ const SettingsModule = {
         const settings = this.getSettings();
         if (!settings.semesterStart) return 0;
 
-        const startDate = new Date(settings.semesterStart);
-        const today = new Date(this.getToday());
+        const startDate = this.parseLocalDate(settings.semesterStart);
+        const today = this.parseLocalDate(this.getToday());
 
         const diffTime = today.getTime() - startDate.getTime();
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
@@ -122,7 +138,6 @@ const SettingsModule = {
      * 更新头部显示
      */
     updateHeaderDisplay() {
-        const today = this.getToday();
         const week = this.getCurrentWeek();
         const settings = this.getSettings();
         const courseName = settings.courseName || '';
@@ -133,10 +148,10 @@ const SettingsModule = {
             titleEl.textContent = courseName ? `${courseName}课程互动系统` : '课堂互动系统';
         }
 
-        // 格式化日期显示
-        const dateObj = new Date(today);
+        // 格式化日期显示（使用当前本地时间，避免时区问题）
+        const now = new Date();
         const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-        const formattedDate = `${dateObj.getMonth() + 1}月${dateObj.getDate()}日 ${weekdays[dateObj.getDay()]}`;
+        const formattedDate = `${now.getMonth() + 1}月${now.getDate()}日 ${weekdays[now.getDay()]}`;
 
         document.getElementById('headerDate').textContent = formattedDate;
 
@@ -183,8 +198,8 @@ const SettingsModule = {
             if (currentWeek !== null) {
                 infoHtml += `<p><strong>当前周次：</strong>第${currentWeek}周</p>`;
             } else {
-                const today = new Date(this.getToday());
-                const startDate = new Date(settings.semesterStart);
+                const today = this.parseLocalDate(this.getToday());
+                const startDate = this.parseLocalDate(settings.semesterStart);
                 if (today < startDate) {
                     const diffDays = Math.ceil((startDate - today) / (1000 * 60 * 60 * 24));
                     infoHtml += `<p><strong>距离开学：</strong>${diffDays}天</p>`;
@@ -209,7 +224,7 @@ const SettingsModule = {
 
         // 学期日期不是必填的，可以只保存其他设置
         if (start && end) {
-            if (new Date(start) >= new Date(end)) {
+            if (this.parseLocalDate(start) >= this.parseLocalDate(end)) {
                 showToast('结束日期必须晚于开始日期', 'error');
                 return;
             }
