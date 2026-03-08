@@ -186,11 +186,13 @@ const StatisticsModule = {
     },
 
     /**
-     * 渲染本学期排行榜
+     * 渲染本学期排行榜（按平均分降序取TOP5）
      */
     renderSemesterRanking() {
         const stats = this.getSemesterStudentStats();
-        this.renderRanking(stats, 'semesterRankingList', 'emptySemesterRankingTip');
+        // 按平均分降序排序后取TOP5
+        const sortedStats = [...stats].sort((a, b) => b.avgScore - a.avgScore);
+        this.renderRanking(sortedStats, 'semesterRankingList', 'emptySemesterRankingTip');
     },
 
     /**
@@ -256,8 +258,9 @@ const StatisticsModule = {
             const totalAvg = stats.reduce((sum, s) => sum + s.avgScore, 0) / stats.length;
             document.getElementById('avgScoreAll').textContent = totalAvg.toFixed(1);
 
-            // 最高平均分
-            document.getElementById('highestScore').textContent = stats[0].avgScore;
+            // 最高平均分（取所有学生中的最高平均分）
+            const highestAvgScore = Math.max(...stats.map(s => s.avgScore));
+            document.getElementById('highestScore').textContent = highestAvgScore;
         } else {
             document.getElementById('avgScoreAll').textContent = '0';
             document.getElementById('highestScore').textContent = '0';
