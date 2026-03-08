@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>课堂互动系统</title>
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- SheetJS for Excel processing (本地库) -->
+    <script src="lib/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <div class="header-title">
+                <h1>课堂互动系统</h1>
+                <p class="header-subtitle">Classroom Interaction System</p>
+            </div>
+            <div class="header-info">
+                <span class="header-date" id="headerDate">--</span>
+                <span class="header-week" id="headerWeek">--</span>
+            </div>
+            <div class="header-actions">
+                <input type="file" id="fileImportData" accept=".xlsx,.xls" hidden>
+                <button id="btnImportData" class="btn btn-outline">
+                    <span class="btn-icon">📤</span>
+                    导入数据
+                </button>
+                <button id="btnExportAll" class="btn btn-primary">
+                    <span class="btn-icon">📥</span>
+                    备份数据
+                </button>
+                <div id="saveIndicator" class="save-indicator saved" title="点击备份数据">
+                    <span class="save-icon">✓</span>
+                    <span class="save-text">已保存</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- 标签导航 -->
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="rollcall">
+                <span class="tab-icon">🎯</span>
+                课堂互动
+            </button>
+            <button class="tab-btn" data-tab="students">
+                <span class="tab-icon">👥</span>
+                学生管理
+            </button>
+            <button class="tab-btn" data-tab="grades">
+                <span class="tab-icon">📊</span>
+                成绩管理
+            </button>
+            <button class="tab-btn" data-tab="history">
+                <span class="tab-icon">📝</span>
+                历史记录
+            </button>
+            <button class="tab-btn" data-tab="statistics">
+                <span class="tab-icon">🏆</span>
+                数据统计
+            </button>
+            <button class="tab-btn" data-tab="settings">
+                <span class="tab-icon">⚙️</span>
+                设置
+            </button>
+        </nav>
+
+        <!-- 课堂互动面板 -->
+        <section id="rollcall" class="tab-content active">
+            <div class="rollcall-container">
+                <!-- 随机点名区域 -->
+                <div class="rollcall-main">
+                    <div class="rollcall-display" id="rollcallDisplay">
+                        <!-- 烟花彩带容器 -->
+                        <div class="celebration-container" id="celebrationContainer"></div>
+                        <div class="rollcall-scroll-container">
+                            <div class="rollcall-scroll-content" id="rollcallScrollContent">
+                                <div class="rollcall-scroll-item">
+                                    <span class="student-id">准备就绪</span>
+                                    <span class="student-name">点击开始互动</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="rollcall-actions">
+                        <button id="btnRandomRoll" class="btn btn-primary btn-large">
+                            <span class="btn-icon">🎲</span>
+                            随机点名
+                        </button>
+                    </div>
+                    <!-- 搜索学生区域 -->
+                    <div class="search-section">
+                        <div class="search-box">
+                            <input type="text" id="searchInput" placeholder="输入学号或姓名搜索..." autocomplete="off">
+                            <button id="btnSearch" class="btn btn-primary">
+                                <span class="btn-icon">🔍</span>
+                                搜索
+                            </button>
+                        </div>
+                        <div class="search-results" id="searchResults" style="display:none;">
+                            <!-- 动态填充搜索结果 -->
+                        </div>
+                    </div>
+                    <!-- 表现评分区域 -->
+                    <div class="rollcall-rating" id="rollcallRating" style="display:none;">
+                        <div class="rating-header">
+                            <span class="current-student" id="currentStudent"></span>
+                        </div>
+                        <div class="rating-label">表现情况</div>
+                        <div class="star-rating" id="starRating">
+                            <span class="star" data-value="1">★</span>
+                            <span class="star" data-value="2">★</span>
+                            <span class="star" data-value="3">★</span>
+                            <span class="star" data-value="4">★</span>
+                            <span class="star" data-value="5">★</span>
+                        </div>
+                        <div class="rating-score">
+                            <span id="ratingScore">0</span> 分
+                        </div>
+                        <div class="quick-actions">
+                            <button id="btnAbsent" class="btn btn-quick absent">缺勤 (0分)</button>
+                            <button id="btnLeave" class="btn btn-quick leave">请假 (60分)</button>
+                        </div>
+                        <div class="rating-actions">
+                            <button id="btnConfirmRating" class="btn btn-success">确认评分</button>
+                            <button id="btnSkipRating" class="btn btn-cancel">跳过</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 今日统计 -->
+                <div class="rollcall-sidebar">
+                    <div class="stats-card">
+                        <h3>今日统计</h3>
+                        <div class="stats-grid">
+                            <div class="stat-item primary">
+                                <span class="stat-value" id="todayTotal">0</span>
+                                <span class="stat-label">互动人数</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value" id="todayAvgScore">0</span>
+                                <span class="stat-label">平均分</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="today-list card">
+                        <h3>今日互动记录</h3>
+                        <ul id="todayList">
+                            <!-- 动态填充 -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 学生管理面板 -->
+        <section id="students" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>学生列表</h2>
+                    <div class="panel-actions">
+                        <input type="file" id="fileImport" accept=".xlsx,.xls" hidden>
+                        <button id="btnImport" class="btn btn-success">
+                            <span class="btn-icon">📁</span>
+                            导入Excel
+                        </button>
+                        <button id="btnAddStudent" class="btn btn-primary">
+                            <span class="btn-icon">➕</span>
+                            添加学生
+                        </button>
+                        <button id="btnClearAll" class="btn btn-danger">
+                            <span class="btn-icon">🗑️</span>
+                            清空全部
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="studentTable">
+                        <thead>
+                            <tr>
+                                <th>编号</th>
+                                <th>学号</th>
+                                <th>姓名</th>
+                                <th>互动次数</th>
+                                <th>平均分</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentList">
+                            <!-- 动态填充 -->
+                        </tbody>
+                    </table>
+                    <div id="emptyStudentTip" class="empty-tip">
+                        <div class="empty-icon">📋</div>
+                        <p>暂无学生数据</p>
+                        <p class="tip-text">请导入Excel文件或手动添加学生</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 成绩管理面板 -->
+        <section id="grades" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2 id="gradesTitle">成绩管理 - 课堂表现</h2>
+                    <div class="panel-actions">
+                        <button id="btnExportGrades" class="btn btn-primary">
+                            <span class="btn-icon">📊</span>
+                            导出成绩表
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="gradeTable">
+                        <thead id="gradeTableHead">
+                            <!-- 动态填充 -->
+                        </thead>
+                        <tbody id="gradeList">
+                            <!-- 动态填充 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 历史记录面板 -->
+        <section id="history" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>互动历史记录</h2>
+                    <div class="panel-actions">
+                        <input type="date" id="historyDate" class="date-input">
+                        <button id="btnExportHistory" class="btn btn-primary">
+                            <span class="btn-icon">📊</span>
+                            导出记录
+                        </button>
+                        <button id="btnClearHistory" class="btn btn-danger">
+                            <span class="btn-icon">🗑️</span>
+                            清空历史
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="historyTable">
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th>时间</th>
+                                <th>学号</th>
+                                <th>姓名</th>
+                                <th>评分</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyList">
+                            <!-- 动态填充 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 数据统计面板 -->
+        <section id="statistics" class="tab-content">
+            <div class="statistics-container">
+                <!-- 本周统计区域 -->
+                <div class="statistics-group">
+                    <h2 class="group-title">📊 本周统计</h2>
+                    <div class="statistics-row">
+                        <!-- 本周排行榜 -->
+                        <div class="statistics-section ranking-section">
+                            <h3 class="section-title">
+                                <span class="title-icon">🏆</span>
+                                本周平均分排行榜 TOP 5
+                            </h3>
+                            <div class="ranking-list" id="weeklyRankingList">
+                                <!-- 动态填充 -->
+                            </div>
+                            <div class="empty-tip" id="emptyWeeklyRankingTip" style="display:none;">
+                                <div class="empty-icon">📊</div>
+                                <p>暂无本周统计数据</p>
+                            </div>
+                        </div>
+
+                        <!-- 本周频次图 -->
+                        <div class="statistics-section chart-section">
+                            <h3 class="section-title">
+                                <span class="title-icon">📈</span>
+                                本周互动频次统计
+                            </h3>
+                            <div class="horizontal-chart-container" id="weeklyChartContainer">
+                                <div class="chart-header">
+                                    <span class="chart-header-rank">编号</span>
+                                    <span class="chart-header-id">学号</span>
+                                    <span class="chart-header-name">姓名</span>
+                                    <div class="chart-header-bars">
+                                        <span class="chart-x-label">互动次数</span>
+                                    </div>
+                                </div>
+                                <div class="chart-body" id="weeklyChartBody">
+                                    <!-- 动态填充 -->
+                                </div>
+                            </div>
+                            <div class="empty-tip" id="emptyWeeklyChartTip" style="display:none;">
+                                <div class="empty-icon">📊</div>
+                                <p>暂无本周统计数据</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 本周统计摘要 -->
+                    <div class="statistics-summary weekly-summary">
+                        <div class="summary-card">
+                            <div class="summary-icon">🎯</div>
+                            <div class="summary-info">
+                                <span class="summary-value" id="weeklyInteractions">0</span>
+                                <span class="summary-label">本周互动次数</span>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-icon">📊</div>
+                            <div class="summary-info">
+                                <span class="summary-value" id="weeklyAvgScore">0</span>
+                                <span class="summary-label">本周平均分</span>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-icon">⭐</div>
+                            <div class="summary-info">
+                                <span class="summary-value" id="weeklyHighestScore">0</span>
+                                <span class="summary-label">本周最高分</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 本学期统计区域 -->
+                <div class="statistics-group">
+                    <h2 class="group-title">📚 本学期统计</h2>
+                    <div class="statistics-row">
+                        <!-- 本学期排行榜 -->
+                        <div class="statistics-section ranking-section">
+                            <h3 class="section-title">
+                                <span class="title-icon">🏆</span>
+                                本学期平均分排行榜 TOP 5
+                            </h3>
+                            <div class="ranking-list" id="semesterRankingList">
+                                <!-- 动态填充 -->
+                            </div>
+                            <div class="empty-tip" id="emptySemesterRankingTip" style="display:none;">
+                                <div class="empty-icon">📊</div>
+                                <p>暂无统计数据</p>
+                                <p class="tip-text">开始课堂互动后即可查看排行榜</p>
+                            </div>
+                        </div>
+
+                        <!-- 本学期频次图 -->
+                        <div class="statistics-section chart-section">
+                            <h3 class="section-title">
+                                <span class="title-icon">📈</span>
+                                本学期互动频次统计
+                            </h3>
+                            <div class="horizontal-chart-container" id="semesterChartContainer">
+                                <div class="chart-header">
+                                    <span class="chart-header-rank">编号</span>
+                                    <span class="chart-header-id">学号</span>
+                                    <span class="chart-header-name">姓名</span>
+                                    <div class="chart-header-bars">
+                                        <span class="chart-x-label">互动次数</span>
+                                    </div>
+                                </div>
+                                <div class="chart-body" id="semesterChartBody">
+                                    <!-- 动态填充 -->
+                                </div>
+                            </div>
+                            <div class="empty-tip" id="emptySemesterChartTip" style="display:none;">
+                                <div class="empty-icon">📊</div>
+                                <p>暂无统计数据</p>
+                                <p class="tip-text">开始课堂互动后即可查看频次图</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 本学期统计摘要 -->
+                    <div class="statistics-summary semester-summary">
+                        <div class="summary-card">
+                            <div class="summary-icon">👥</div>
+                            <div class="summary-info">
+                                <span class="summary-value" id="totalStudents">0</span>
+                                <span class="summary-label">学生总数</span>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-icon">🎯</div>
+                            <div class="summary-info">
+                                <span class="summary-value" id="totalInteractions">0</span>
+                                <span class="summary-label">互动总次数</span>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-icon">📊</div>
+                            <div class="summary-info">
+                                <span class="summary-value" id="avgScoreAll">0</span>
+                                <span class="summary-label">全班平均分</span>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-icon">⭐</div>
+                            <div class="summary-info">
+                                <span class="summary-value" id="highestScore">0</span>
+                                <span class="summary-label">最高平均分</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 设置面板 -->
+        <section id="settings" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>系统设置</h2>
+                </div>
+                <div class="settings-form">
+                    <div class="settings-section">
+                        <h3 class="settings-section-title">基本信息</h3>
+                        <div class="setting-item">
+                            <label class="setting-label">课程名称</label>
+                            <input type="text" id="courseName" class="setting-input" placeholder="请输入课程名称，如：高等数学">
+                            <p class="setting-hint">设置后系统顶部将显示为"xxx课程互动系统"</p>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <h3 class="settings-section-title">学期设置</h3>
+                        <div class="setting-item">
+                            <label class="setting-label">学期开始日期</label>
+                            <input type="date" id="semesterStart" class="setting-input">
+                        </div>
+                        <div class="setting-item">
+                            <label class="setting-label">学期结束日期</label>
+                            <input type="date" id="semesterEnd" class="setting-input">
+                        </div>
+                        <div class="setting-info" id="semesterInfo">
+                            <p>请设置学期时间以启用周数计算功能</p>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <h3 class="settings-section-title">显示效果</h3>
+                        <div class="setting-item setting-checkbox-item">
+                            <label class="setting-checkbox-label">
+                                <input type="checkbox" id="enableCelebration" class="setting-checkbox">
+                                <span class="checkbox-custom"></span>
+                                <span class="checkbox-text">启用动态点名效果</span>
+                            </label>
+                            <p class="setting-hint">开启后，随机点名和搜索选择学生时会显示烟花彩带庆祝动画</p>
+                        </div>
+                    </div>
+                    <div class="setting-actions">
+                        <button id="btnSaveSettings" class="btn btn-primary">
+                            <span class="btn-icon">💾</span>
+                            保存设置
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 添加学生弹窗 -->
+        <div id="addStudentModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>添加学生</h3>
+                    <span class="modal-close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="studentId">学号</label>
+                        <input type="text" id="studentId" placeholder="请输入学号">
+                    </div>
+                    <div class="form-group">
+                        <label for="studentName">姓名</label>
+                        <input type="text" id="studentName" placeholder="请输入姓名">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnConfirmAdd" class="btn btn-primary">确认添加</button>
+                    <button class="btn btn-cancel modal-close">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 表现评分弹窗 -->
+        <div id="gradeModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>表现评分</h3>
+                    <span class="modal-close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p id="gradeStudentName" class="grade-student-name"></p>
+                    <div class="modal-star-rating" id="modalStarRating">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <div class="rating-score">
+                        <span id="modalRatingScore">0</span> 分
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnConfirmGrade" class="btn btn-primary">确认</button>
+                    <button class="btn btn-cancel modal-close">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 编辑互动记录弹窗 -->
+        <div id="editRecordModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>修改互动记录</h3>
+                    <span class="modal-close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="edit-record-info">
+                        <p><strong>学号：</strong><span id="editRecordId"></span></p>
+                        <p><strong>姓名：</strong><span id="editRecordName"></span></p>
+                        <p><strong>日期：</strong><span id="editRecordDate"></span></p>
+                        <p><strong>周次：</strong><span id="editRecordWeek"></span></p>
+                    </div>
+                    <div class="edit-score-section">
+                        <label class="setting-label">修改评分</label>
+                        <div class="edit-score-input-group">
+                            <input type="number" id="editScoreInput" min="0" max="100" placeholder="0-100">
+                            <span class="score-unit">分</span>
+                        </div>
+                        <div class="edit-quick-buttons">
+                            <button class="btn btn-quick absent" onclick="document.getElementById('editScoreInput').value='0'">缺勤(0分)</button>
+                            <button class="btn btn-quick leave" onclick="document.getElementById('editScoreInput').value='60'">请假(60分)</button>
+                            <button class="btn btn-quick" onclick="document.getElementById('editScoreInput').value='80'">良好(80分)</button>
+                            <button class="btn btn-quick" onclick="document.getElementById('editScoreInput').value='100'">满分(100分)</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnConfirmEditRecord" class="btn btn-primary">确认修改</button>
+                    <button class="btn btn-cancel modal-close">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 欢迎引导弹窗 -->
+        <div id="welcomeModal" class="modal">
+            <div class="modal-content welcome-modal">
+                <div class="welcome-header">
+                    <div class="welcome-icon">📚</div>
+                    <h2>欢迎使用课堂互动系统</h2>
+                    <p class="welcome-subtitle">检测到暂无数据，请选择以下方式开始使用</p>
+                </div>
+                <div class="welcome-actions">
+                    <input type="file" id="fileImportWelcome" accept=".xlsx,.xls" hidden>
+                    <button id="btnWelcomeImport" class="btn btn-primary btn-large">
+                        <span class="btn-icon">📁</span>
+                        导入数据文件
+                    </button>
+                    <p class="welcome-divider">或者</p>
+                    <button id="btnWelcomeSettings" class="btn btn-outline btn-large">
+                        <span class="btn-icon">⚙️</span>
+                        前往设置页面初始化
+                    </button>
+                </div>
+                <div class="welcome-tip">
+                    <p>💡 提示：您可以随时通过头部「备份数据」按钮保存所有数据到 Excel 文件，方便在不同电脑间迁移使用。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 提示消息 -->
+        <div id="toast" class="toast"></div>
+    </div>
+
+    <!-- JavaScript modules -->
+    <script src="js/settings.js"></script>
+    <script src="js/excel.js"></script>
+    <script src="js/students.js"></script>
+    <script src="js/attendance.js"></script>
+    <script src="js/grades.js"></script>
+    <script src="js/statistics.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
