@@ -48,7 +48,7 @@ const StatisticsModule = {
     },
 
     /**
-     * 获取本学期的学生统计数据
+     * 获取本学期的学生统计数据（显示所有学生，按学号排序）
      * @returns {Array} 学生统计数据数组
      */
     getSemesterStudentStats() {
@@ -57,19 +57,17 @@ const StatisticsModule = {
 
         students.forEach(student => {
             const studentStats = AttendanceModule.getStudentStats(student.id);
-            if (studentStats.count > 0) {
-                stats.push({
-                    id: student.id,
-                    name: student.name,
-                    rollCount: student.rollCount || studentStats.count,
-                    avgScore: studentStats.avgScore,
-                    interactionCount: studentStats.count
-                });
-            }
+            stats.push({
+                id: student.id,
+                name: student.name,
+                rollCount: student.rollCount || studentStats.count,
+                avgScore: studentStats.count > 0 ? studentStats.avgScore : 0,
+                interactionCount: studentStats.count // 没有数据时为0
+            });
         });
 
-        // 按平均分降序排序
-        stats.sort((a, b) => b.avgScore - a.avgScore);
+        // 按学号排序（字符串比较）
+        stats.sort((a, b) => a.id.localeCompare(b.id, 'zh-CN'));
 
         return stats;
     },
@@ -136,8 +134,9 @@ const StatisticsModule = {
      * @param {Array} stats - 统计数据
      * @param {string} containerId - 容器ID
      * @param {string} emptyTipId - 空提示ID
+     * @param {boolean} keepOrder - 是否保持原始顺序（用于按学号排序）
      */
-    renderChart(stats, containerId, emptyTipId) {
+    renderChart(stats, containerId, emptyTipId, keepOrder = false) {
         const container = document.getElementById(containerId);
         const emptyTip = document.getElementById(emptyTipId);
 
@@ -149,19 +148,19 @@ const StatisticsModule = {
 
         emptyTip.style.display = 'none';
 
-        // 计算最大互动次数用于缩放
+        // 计算最大互动次数用于缩放（至少为1，避免没有数据时除零）
         const maxInteraction = Math.max(...stats.map(s => s.interactionCount), 1);
 
-        // 按互动次数排序（降序）
-        const sortedStats = [...stats].sort((a, b) => b.interactionCount - a.interactionCount);
+        // 是否保持原始顺序
+        const sortedStats = keepOrder ? stats : [...stats].sort((a, b) => b.interactionCount - a.interactionCount);
 
         const html = sortedStats.map((student, index) => {
-            const percentage = (student.interactionCount / maxInteraction) * 100;
-            const rank = index + 1;
+            const percentage = maxInteraction > 0 ? (student.interactionCount / maxInteraction) * 100 : 0;
+            const displayRank = index + 1;
 
             return `
                 <div class="chart-row">
-                    <div class="chart-row-rank">${rank}</div>
+                    <div class="chart-row-rank">${displayRank}</div>
                     <div class="chart-row-id">${student.id}</div>
                     <div class="chart-row-name">${student.name}</div>
                     <div class="chart-row-bars">
@@ -203,11 +202,12 @@ const StatisticsModule = {
     },
 
     /**
-     * 渲染本学期频次图
+     * 渲染本学期频次图（按学号排序，显示所有学生）
      */
     renderSemesterChart() {
         const stats = this.getSemesterStudentStats();
-        this.renderChart(stats, 'semesterChartBody', 'emptySemesterChartTip');
+        // keepOrder = true，保持按学号排序的原始顺序
+        this.renderChart(stats, 'semesterChartBody', 'emptySemesterChartTip', true);
     },
 
     /**
