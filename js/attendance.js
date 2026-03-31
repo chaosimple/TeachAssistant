@@ -126,19 +126,35 @@ const AttendanceModule = {
 
     /**
      * 权重随机选择算法
-     * 互动少的学生有更高概率被选中
+     * 基于历史记录，被点名次数少的学生有更高概率被选中
      * @returns {Object|null} 学生对象
      */
     weightedRandomSelect() {
         const students = StudentModule.getStudents();
         if (students.length === 0) return null;
 
-        const maxRollCount = Math.max(...students.map(s => s.rollCount || 0), 1);
+        // 读取历史记录
+        const records = this.getRecords();
 
-        const weightedStudents = students.map(student => ({
-            ...student,
-            weight: maxRollCount - (student.rollCount || 0) + 1
-        }));
+        // 统计每个学生在历史记录中的点名次数
+        const rollCountMap = {};
+        records.forEach(record => {
+            rollCountMap[record.studentId] = (rollCountMap[record.studentId] || 0) + 1;
+        });
+
+        // 获取最大点名次数
+        const allCounts = students.map(s => rollCountMap[s.id] || 0);
+        const maxRollCount = Math.max(...allCounts, 1);
+
+        // 计算权重：从未被点名的学生权重最高
+        const weightedStudents = students.map(student => {
+            const historyCount = rollCountMap[student.id] || 0;
+            return {
+                ...student,
+                weight: maxRollCount - historyCount + 1,
+                historyCount: historyCount
+            };
+        });
 
         const totalWeight = weightedStudents.reduce((sum, s) => sum + s.weight, 0);
         let random = Math.random() * totalWeight;
