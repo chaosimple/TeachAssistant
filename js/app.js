@@ -326,7 +326,9 @@ const App = {
 
         const now = new Date();
         const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-        ExcelModule.exportFullBackup(data, `课堂互动系统数据_${today}.xlsx`);
+        const courseName = data.settings.courseName || '课堂';
+        const defaultFileName = `${courseName}互动数据_${today}.xlsx`;
+        ExcelModule.exportFullBackup(data, defaultFileName);
         this.markDataSaved();
         showToast('数据备份成功', 'success');
     },

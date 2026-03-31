@@ -134,6 +134,7 @@ const ExcelModule = {
         const settingsData = [
             ['Setting', 'Value'],
             ['courseName', allData.settings?.courseName || ''],
+            ['courseProgress', allData.settings?.courseProgress || ''],
             ['semesterStart', allData.settings?.semesterStart || ''],
             ['semesterEnd', allData.settings?.semesterEnd || ''],
             ['enableCelebration', allData.settings?.enableCelebration !== false ? 'true' : 'false'],
@@ -206,7 +207,7 @@ const ExcelModule = {
                     const workbook = XLSX.read(data, { type: 'array' });
 
                     const result = {
-                        settings: { courseName: '', semesterStart: null, semesterEnd: null, enableCelebration: true },
+                        settings: { courseName: '', courseProgress: '', semesterStart: null, semesterEnd: null, enableCelebration: true },
                         students: [],
                         history: [],
                         grades: {}
@@ -221,6 +222,8 @@ const ExcelModule = {
                             if (row && row.length >= 2) {
                                 if (row[0] === 'courseName') {
                                     result.settings.courseName = String(row[1] || '').trim();
+                                } else if (row[0] === 'courseProgress') {
+                                    result.settings.courseProgress = String(row[1] || '').trim();
                                 } else if (row[0] === 'semesterStart' && row[1]) {
                                     result.settings.semesterStart = String(row[1]);
                                 } else if (row[0] === 'semesterEnd' && row[1]) {

@@ -1351,6 +1351,27 @@ body {
     box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
+.setting-textarea {
+    width: 100%;
+    padding: 14px 18px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--card-bg);
+    min-height: 100px;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+.setting-textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
 /* 复选框设置项样式 */
 .setting-checkbox-item {
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
