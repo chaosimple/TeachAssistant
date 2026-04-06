@@ -16,6 +16,14 @@ const AttendanceModule = {
     // 当前评分
     currentScore: 0,
 
+    // 课堂点名状态
+    classRollCall: {
+        isActive: false,
+        students: [],
+        currentIndex: 0,
+        absentList: []
+    },
+
     /**
      * 获取所有互动记录
      * @returns {Array} 记录数组
@@ -126,19 +134,35 @@ const AttendanceModule = {
 
     /**
      * 权重随机选择算法
-     * 互动少的学生有更高概率被选中
+     * 基于历史记录，被点名次数少的学生有更高概率被选中
      * @returns {Object|null} 学生对象
      */
     weightedRandomSelect() {
         const students = StudentModule.getStudents();
         if (students.length === 0) return null;
 
-        const maxRollCount = Math.max(...students.map(s => s.rollCount || 0), 1);
+        // 读取历史记录
+        const records = this.getRecords();
 
-        const weightedStudents = students.map(student => ({
-            ...student,
-            weight: maxRollCount - (student.rollCount || 0) + 1
-        }));
+        // 统计每个学生在历史记录中的点名次数
+        const rollCountMap = {};
+        records.forEach(record => {
+            rollCountMap[record.studentId] = (rollCountMap[record.studentId] || 0) + 1;
+        });
+
+        // 获取最大点名次数
+        const allCounts = students.map(s => rollCountMap[s.id] || 0);
+        const maxRollCount = Math.max(...allCounts, 1);
+
+        // 计算权重：从未被点名的学生权重最高
+        const weightedStudents = students.map(student => {
+            const historyCount = rollCountMap[student.id] || 0;
+            return {
+                ...student,
+                weight: maxRollCount - historyCount + 1,
+                historyCount: historyCount
+            };
+        });
 
         const totalWeight = weightedStudents.reduce((sum, s) => sum + s.weight, 0);
         let random = Math.random() * totalWeight;
@@ -755,6 +779,41 @@ const AttendanceModule = {
             this.performRandomRoll();
         });
 
+        // 课堂点名按钮
+        document.getElementById('btnStartClassRoll').addEventListener('click', () => {
+            this.startClassRollCall();
+        });
+
+        // 课堂点名 - 到场按钮
+        document.getElementById('btnPresent').addEventListener('click', () => {
+            this.markCurrentPresent();
+        });
+
+        // 课堂点名 - 缺席按钮
+        document.getElementById('btnAbsent').addEventListener('click', () => {
+            this.markCurrentAbsent();
+        });
+
+        // 课堂点名 - 上一位
+        document.getElementById('btnPrevStudent').addEventListener('click', () => {
+            this.prevStudent();
+        });
+
+        // 课堂点名 - 下一位
+        document.getElementById('btnNextStudent').addEventListener('click', () => {
+            this.nextStudent();
+        });
+
+        // 课堂点名 - 结束点名
+        document.getElementById('btnFinishRollCall').addEventListener('click', () => {
+            this.finishRollCall();
+        });
+
+        // 课堂点名 - 取消点名
+        document.getElementById('btnCancelRollCall').addEventListener('click', () => {
+            this.cancelRollCall();
+        });
+
         // 初始化星星评分
         this.initStarRating();
 
@@ -1129,5 +1188,246 @@ const AttendanceModule = {
                 searchResults.style.display = 'none';
             }
         });
+    },
+
+    // ========== 课堂点名功能 ==========
+
+    /**
+     * 开始课堂点名
+     */
+    startClassRollCall() {
+        const students = StudentModule.getStudents();
+
+        if (students.length === 0) {
+            showToast('请先添加学生', 'error');
+            return;
+        }
+
+        // 初始化课堂点名状态
+        this.classRollCall = {
+            isActive: true,
+            students: students,  // 按导入顺序
+            currentIndex: 0,
+            absentList: []
+        };
+
+        // 隐藏随机点名区域，显示课堂点名面板
+        document.getElementById('rollcallDisplay').style.display = 'none';
+        document.getElementById('rollcallActions').style.display = 'none';
+        document.getElementById('searchSection') && (document.getElementById('searchSection').style.display = 'none');
+        document.getElementById('rollcallRating').style.display = 'none';
+        document.getElementById('classrollPanel').style.display = 'block';
+
+        // 渲染第一个学生
+        this.renderCurrentStudent();
+    },
+
+    /**
+     * 渲染当前学生
+     */
+    renderCurrentStudent() {
+        const { students, currentIndex, absentList } = this.classRollCall;
+
+        if (currentIndex >= students.length) {
+            // 所有学生都已点完
+            document.getElementById('classrollCurrentName').textContent = '点名完成！';
+            document.getElementById('classrollCurrentId').textContent = '';
+            document.getElementById('classrollProgress').textContent = `共 ${students.length} 名学生`;
+            return;
+        }
+
+        const student = students[currentIndex];
+        document.getElementById('classrollCurrentName').textContent = student.name;
+        document.getElementById('classrollCurrentId').textContent = student.id;
+        document.getElementById('classrollProgress').textContent = `第 ${currentIndex + 1}/${students.length} 名学生`;
+
+        // 更新缺席列表显示
+        this.renderAbsentList();
+    },
+
+    /**
+     * 渲染缺席列表
+     */
+    renderAbsentList() {
+        const absentList = this.classRollCall.absentList;
+        const listElement = document.getElementById('absentList');
+
+        if (absentList.length === 0) {
+            listElement.innerHTML = '<li style="color: rgba(255,255,255,0.7);">暂无</li>';
+            return;
+        }
+
+        listElement.innerHTML = absentList.map(s =>
+            `<li>${s.studentId} - ${s.studentName}</li>`
+        ).join('');
+    },
+
+    /**
+     * 标记当前学生到场
+     */
+    markCurrentPresent() {
+        const { students, currentIndex } = this.classRollCall;
+
+        if (currentIndex >= students.length) return;
+
+        // 移动到下一个学生
+        this.classRollCall.currentIndex++;
+        this.renderCurrentStudent();
+    },
+
+    /**
+     * 标记当前学生缺席
+     */
+    markCurrentAbsent() {
+        const { students, currentIndex } = this.classRollCall;
+
+        if (currentIndex >= students.length) return;
+
+        const student = students[currentIndex];
+
+        // 添加到缺席列表
+        this.classRollCall.absentList.push({
+            studentId: student.id,
+            studentName: student.name
+        });
+
+        // 立即保存记录到历史
+        const currentWeek = SettingsModule.getCurrentWeek() || 1;
+        const record = {
+            date: this.getToday(),
+            time: this.getCurrentTime(),
+            studentId: student.id,
+            studentName: student.name,
+            score: 0,
+            week: currentWeek,
+            type: 'rollcall'
+        };
+        this.addRecord(record);
+
+        // 更新学生互动次数
+        StudentModule.updateRollCount(student.id);
+
+        // 保存成绩到对应周数
+        GradeModule.setWeekScore(student.id, currentWeek, 0);
+
+        // 立即刷新今日显示
+        this.updateTodayDisplay();
+        StudentModule.renderStudentList();
+        GradeModule.renderGradeList();
+
+        // 移动到下一个学生
+        this.classRollCall.currentIndex++;
+        this.renderCurrentStudent();
+    },
+
+    /**
+     * 上一位学生
+     */
+    prevStudent() {
+        const { currentIndex } = this.classRollCall;
+
+        if (currentIndex > 0) {
+            this.classRollCall.currentIndex--;
+            this.renderCurrentStudent();
+        } else {
+            showToast('已经是第一个学生', 'error');
+        }
+    },
+
+    /**
+     * 下一位学生
+     */
+    nextStudent() {
+        const { students, currentIndex } = this.classRollCall;
+
+        if (currentIndex < students.length) {
+            this.classRollCall.currentIndex++;
+            this.renderCurrentStudent();
+        } else {
+            showToast('已经是最后一个学生', 'error');
+        }
+    },
+
+    /**
+     * 结束课堂点名
+     */
+    finishRollCall() {
+        const { absentList } = this.classRollCall;
+
+        if (absentList.length === 0) {
+            showToast('本次点名没有缺席学生', 'success');
+            this.closeClassRollCall();
+            return;
+        }
+
+        // 获取当前周数
+        const currentWeek = SettingsModule.getCurrentWeek();
+        if (!currentWeek) {
+            showToast('请先在设置页面配置学期时间', 'error');
+            return;
+        }
+
+        const today = this.getToday();
+        const time = this.getCurrentTime();
+
+        // 为每个缺席学生添加记录
+        absentList.forEach(student => {
+            const record = {
+                date: today,
+                time: time,
+                studentId: student.studentId,
+                studentName: student.studentName,
+                score: 0,
+                week: currentWeek,
+                type: 'rollcall'
+            };
+            this.addRecord(record);
+
+            // 更新学生互动次数
+            StudentModule.updateRollCount(student.studentId);
+
+            // 保存成绩到对应周数
+            GradeModule.setWeekScore(student.studentId, currentWeek, 0);
+        });
+
+        showToast(`已记录 ${absentList.length} 名缺席学生`, 'success');
+
+        // 刷新显示
+        this.updateTodayDisplay();
+        StudentModule.renderStudentList();
+        GradeModule.renderGradeList();
+
+        this.closeClassRollCall();
+    },
+
+    /**
+     * 取消课堂点名
+     */
+    cancelRollCall() {
+        if (this.classRollCall.absentList.length > 0) {
+            if (!confirm('取消将丢失已标记的缺席记录，确定要取消吗？')) {
+                return;
+            }
+        }
+        this.closeClassRollCall();
+    },
+
+    /**
+     * 关闭课堂点名面板
+     */
+    closeClassRollCall() {
+        // 重置状态
+        this.classRollCall = {
+            isActive: false,
+            students: [],
+            currentIndex: 0,
+            absentList: []
+        };
+
+        // 恢复显示随机点名区域
+        document.getElementById('rollcallDisplay').style.display = 'block';
+        document.getElementById('rollcallActions').style.display = 'flex';
+        document.getElementById('searchSection') && (document.getElementById('searchSection').style.display = 'block');
+        document.getElementById('classrollPanel').style.display = 'none';
     }
 };

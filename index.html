@@ -83,14 +83,54 @@
                             </div>
                         </div>
                     </div>
-                    <div class="rollcall-actions">
+                    <div class="rollcall-actions" id="rollcallActions">
                         <button id="btnRandomRoll" class="btn btn-primary btn-large">
                             <span class="btn-icon">🎲</span>
                             随机点名
                         </button>
+                        <button id="btnStartClassRoll" class="btn btn-success btn-large">
+                            <span class="btn-icon">📋</span>
+                            课堂点名
+                        </button>
+                    </div>
+                    <!-- 课堂点名面板 -->
+                    <div class="classroll-panel" id="classrollPanel" style="display:none;">
+                        <div class="classroll-header">
+                            <h3>课堂点名</h3>
+                            <span class="classroll-progress" id="classrollProgress">第 0/0 名学生</span>
+                        </div>
+                        <div class="classroll-current">
+                            <span class="classroll-current-name" id="classrollCurrentName">请开始点名</span>
+                            <span class="classroll-current-id" id="classrollCurrentId"></span>
+                        </div>
+                        <div class="classroll-buttons">
+                            <button id="btnPresent" class="btn btn-success">
+                                <span class="btn-icon">✓</span>
+                                到场
+                            </button>
+                            <button id="btnAbsent" class="btn btn-danger">
+                                <span class="btn-icon">✗</span>
+                                缺席
+                            </button>
+                        </div>
+                        <div class="classroll-nav">
+                            <button id="btnPrevStudent" class="btn btn-outline">上一位</button>
+                            <button id="btnNextStudent" class="btn btn-outline">下一位</button>
+                        </div>
+                        <div class="classroll-actions">
+                            <button id="btnFinishRollCall" class="btn btn-primary">
+                                <span class="btn-icon">💾</span>
+                                结束点名
+                            </button>
+                            <button id="btnCancelRollCall" class="btn btn-cancel">取消</button>
+                        </div>
+                        <div class="classroll-absent-list">
+                            <h4>已标记缺席：</h4>
+                            <ul id="absentList"></ul>
+                        </div>
                     </div>
                     <!-- 搜索学生区域 -->
-                    <div class="search-section">
+                    <div class="search-section" id="searchSection">
                         <div class="search-box">
                             <input type="text" id="searchInput" placeholder="输入学号或姓名搜索..." autocomplete="off">
                             <button id="btnSearch" class="btn btn-primary">

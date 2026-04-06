@@ -590,6 +590,129 @@ body {
     margin-bottom: 20px;
 }
 
+/* 课堂点名面板 */
+.classroll-panel {
+    background: #374151;
+    border-radius: var(--radius-xl);
+    padding: 48px;
+    text-align: center;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    min-height: 480px;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.classroll-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.classroll-header h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.classroll-progress {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+}
+
+.classroll-current {
+    text-align: center;
+    padding: 40px 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+.classroll-current-name {
+    display: block;
+    font-size: 36px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 8px;
+}
+
+.classroll-current-id {
+    display: block;
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.classroll-buttons {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.classroll-buttons .btn {
+    flex: 1;
+    max-width: 160px;
+    padding: 14px 24px;
+    font-size: 16px;
+}
+
+.classroll-nav {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.classroll-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 20px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.classroll-absent-list {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: auto;
+}
+
+.classroll-absent-list h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.classroll-absent-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.classroll-absent-list li {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 13px;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+    font-size: 13px;
+}
+
 /* 搜索学生 */
 .search-section {
     width: 100%;
