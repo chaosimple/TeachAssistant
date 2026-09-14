@@ -21,6 +21,7 @@ const App = {
         AttendanceModule.init();
         GradeModule.init();
         StatisticsModule.init();
+        CourseProgressModule.init();
 
         // 初始化标签页切换
         this.initTabs();
@@ -188,6 +189,11 @@ const App = {
                 if (tabId === 'statistics') {
                     StatisticsModule.refresh();
                 }
+
+                // 切换到课程进度页面时刷新
+                if (tabId === 'progress') {
+                    CourseProgressModule.renderProgressList();
+                }
             });
         });
     },
@@ -316,6 +322,7 @@ const App = {
             students: StudentModule.getStudents(),
             history: AttendanceModule.getRecords(),
             grades: GradeModule.getAllGradesData(),
+            progress: CourseProgressModule.getProgressList(),
             totalWeeks: SettingsModule.getTotalWeeks() || 20
         };
 
@@ -345,6 +352,7 @@ const App = {
         localStorage.removeItem('classroom_students');
         localStorage.removeItem('classroom_interaction');
         localStorage.removeItem('classroom_grades');
+        localStorage.removeItem('classroom_course_progress');
 
         // 导入设置
         if (data.settings) {
@@ -366,6 +374,11 @@ const App = {
             GradeModule.saveGrades(data.grades);
         }
 
+        // 导入课程进度
+        if (data.progress && data.progress.length > 0) {
+            CourseProgressModule.saveProgressList(data.progress);
+        }
+
         // 刷新所有模块显示
         SettingsModule.updateHeaderDisplay();
         SettingsModule.updateSettingsDisplay();
@@ -373,6 +386,7 @@ const App = {
         AttendanceModule.updateTodayDisplay();
         AttendanceModule.renderHistory();
         GradeModule.renderGradeList();
+        CourseProgressModule.renderProgressList();
 
         // 标记为已保存
         this.markDataSaved();

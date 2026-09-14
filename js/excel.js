@@ -134,7 +134,6 @@ const ExcelModule = {
         const settingsData = [
             ['Setting', 'Value'],
             ['courseName', allData.settings?.courseName || ''],
-            ['courseProgress', allData.settings?.courseProgress || ''],
             ['semesterStart', allData.settings?.semesterStart || ''],
             ['semesterEnd', allData.settings?.semesterEnd || ''],
             ['enableCelebration', allData.settings?.enableCelebration !== false ? 'true' : 'false'],
@@ -179,6 +178,14 @@ const ExcelModule = {
         const gradesSheet = XLSX.utils.aoa_to_sheet(gradesData);
         XLSX.utils.book_append_sheet(workbook, gradesSheet, '成绩数据');
 
+        // 课程进度工作表
+        const progressData = [['日期', '时间', '周次', '进度内容']];
+        (allData.progress || []).forEach(p => {
+            progressData.push([p.date, p.time, p.week || '', p.content || '']);
+        });
+        const progressSheet = XLSX.utils.aoa_to_sheet(progressData);
+        XLSX.utils.book_append_sheet(workbook, progressSheet, '课程进度');
+
         // 下载
         XLSX.writeFile(workbook, filename);
     },
@@ -207,10 +214,11 @@ const ExcelModule = {
                     const workbook = XLSX.read(data, { type: 'array' });
 
                     const result = {
-                        settings: { courseName: '', courseProgress: '', semesterStart: null, semesterEnd: null, enableCelebration: true },
+                        settings: { courseName: '', semesterStart: null, semesterEnd: null, enableCelebration: true },
                         students: [],
                         history: [],
-                        grades: {}
+                        grades: {},
+                        progress: []
                     };
 
                     // 读取系统设置
@@ -222,8 +230,6 @@ const ExcelModule = {
                             if (row && row.length >= 2) {
                                 if (row[0] === 'courseName') {
                                     result.settings.courseName = String(row[1] || '').trim();
-                                } else if (row[0] === 'courseProgress') {
-                                    result.settings.courseProgress = String(row[1] || '').trim();
                                 } else if (row[0] === 'semesterStart' && row[1]) {
                                     result.settings.semesterStart = String(row[1]);
                                 } else if (row[0] === 'semesterEnd' && row[1]) {
@@ -301,6 +307,25 @@ const ExcelModule = {
                                         }
                                     });
                                 }
+                            }
+                        }
+                    }
+
+                    // 读取课程进度
+                    if (workbook.SheetNames.includes('课程进度')) {
+                        const progressSheet = workbook.Sheets['课程进度'];
+                        const progressRows = XLSX.utils.sheet_to_json(progressSheet, { header: 1 });
+                        for (let i = 1; i < progressRows.length; i++) {
+                            const row = progressRows[i];
+                            if (row && row.length >= 2 && row[0]) {
+                                result.progress.push({
+                                    id: i,
+                                    date: String(row[0]).trim(),
+                                    time: String(row[1] || '').trim(),
+                                    week: parseInt(row[2]) || null,
+                                    content: String(row[3] || '').trim(),
+                                    createdAt: Date.now() - (progressRows.length - i) * 1000
+                                });
                             }
                         }
                     }

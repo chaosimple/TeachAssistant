@@ -26,7 +26,6 @@ const SettingsModule = {
         const data = localStorage.getItem(this.STORAGE_KEY);
         const defaultSettings = {
             courseName: '',
-            courseProgress: '',
             semesterStart: null,
             semesterEnd: null,
             enableCelebration: true // 默认启用动态点名效果
@@ -175,12 +174,6 @@ const SettingsModule = {
         // 更新课程名称输入框
         document.getElementById('courseName').value = settings.courseName || '';
 
-        // 更新课程进度输入框
-        const courseProgressEl = document.getElementById('courseProgress');
-        if (courseProgressEl) {
-            courseProgressEl.value = settings.courseProgress || '';
-        }
-
         document.getElementById('semesterStart').value = settings.semesterStart || '';
         document.getElementById('semesterEnd').value = settings.semesterEnd || '';
 
@@ -225,7 +218,6 @@ const SettingsModule = {
      */
     handleSaveSettings() {
         const courseName = document.getElementById('courseName').value.trim();
-        const courseProgress = document.getElementById('courseProgress').value.trim();
         const start = document.getElementById('semesterStart').value;
         const end = document.getElementById('semesterEnd').value;
         const enableCelebration = document.getElementById('enableCelebration').checked;
@@ -240,7 +232,6 @@ const SettingsModule = {
 
         this.saveSettings({
             courseName: courseName,
-            courseProgress: courseProgress,
             semesterStart: start || null,
             semesterEnd: end || null,
             enableCelebration: enableCelebration

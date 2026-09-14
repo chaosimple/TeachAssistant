@@ -60,6 +60,10 @@
                 <span class="tab-icon">🏆</span>
                 数据统计
             </button>
+            <button class="tab-btn" data-tab="progress">
+                <span class="tab-icon">📅</span>
+                课程进度
+            </button>
             <button class="tab-btn" data-tab="settings">
                 <span class="tab-icon">⚙️</span>
                 设置
@@ -498,6 +502,42 @@
             </div>
         </section>
 
+        <!-- 课程进度面板 -->
+        <section id="progress" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>课程进度</h2>
+                    <div class="panel-actions">
+                        <button id="btnAddProgress" class="btn btn-primary">
+                            <span class="btn-icon">➕</span>
+                            添加进度
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="progressTable">
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th>时间</th>
+                                <th>周次</th>
+                                <th>进度内容</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="progressList">
+                            <!-- 动态填充 -->
+                        </tbody>
+                    </table>
+                    <div id="emptyProgressTip" class="empty-tip">
+                        <div class="empty-icon">📅</div>
+                        <p>暂无课程进度记录</p>
+                        <p class="tip-text">点击「添加进度」记录课程进展</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- 设置面板 -->
         <section id="settings" class="tab-content">
             <div class="panel">
@@ -528,14 +568,6 @@
                         </div>
                     </div>
                     <div class="settings-section">
-                        <h3 class="settings-section-title">课程进度</h3>
-                        <div class="setting-item">
-                            <label class="setting-label">当前进度</label>
-                            <textarea id="courseProgress" class="setting-textarea" placeholder="记录当前课程的进度信息，如：已讲解章节、待完成内容等"></textarea>
-                            <p class="setting-hint">老师可以记录当前课程的进度信息</p>
-                        </div>
-                    </div>
-                    <div class="settings-section">
                         <h3 class="settings-section-title">显示效果</h3>
                         <div class="setting-item setting-checkbox-item">
                             <label class="setting-checkbox-label">
@@ -555,6 +587,39 @@
                 </div>
             </div>
         </section>
+
+        <!-- 添加课程进度弹窗 -->
+        <div id="addProgressModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>添加课程进度</h3>
+                    <span class="modal-close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>日期</label>
+                        <input type="date" id="progressDate" class="setting-input">
+                    </div>
+                    <div class="form-group">
+                        <label>时间</label>
+                        <input type="time" id="progressTime" class="setting-input">
+                    </div>
+                    <div class="form-group">
+                        <label>周次</label>
+                        <input type="text" id="progressWeek" class="setting-input" readonly>
+                        <p class="setting-hint">根据学期设置自动计算</p>
+                    </div>
+                    <div class="form-group">
+                        <label>进度内容</label>
+                        <textarea id="progressContent" class="setting-textarea" rows="4" placeholder="记录本次课程的进度信息"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnConfirmAddProgress" class="btn btn-primary">确认添加</button>
+                    <button class="btn btn-cancel modal-close">取消</button>
+                </div>
+            </div>
+        </div>
 
         <!-- 添加学生弹窗 -->
         <div id="addStudentModal" class="modal">
@@ -674,6 +739,7 @@
 
     <!-- JavaScript modules -->
     <script src="js/settings.js"></script>
+    <script src="js/courseProgress.js"></script>
     <script src="js/excel.js"></script>
     <script src="js/students.js"></script>
     <script src="js/attendance.js"></script>
