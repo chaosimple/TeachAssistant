@@ -224,6 +224,7 @@ const AttendanceModule = {
             <div class="rollcall-scroll-item">
                 <span class="student-id">${s.id}</span>
                 <span class="student-name">${s.name}</span>
+                <span class="student-pinyin">(${this.getFullPinyin(s.name)})</span>
             </div>
         `).join('');
 
@@ -1011,7 +1012,7 @@ const AttendanceModule = {
     },
 
     /**
-     * 获取汉字的拼音
+     * 获取汉字的拼音（使用 pinyin-pro 库）
      * @param {string} char - 单个汉字
      * @returns {string} 拼音
      */
@@ -1025,6 +1026,11 @@ const AttendanceModule = {
      * @returns {string} 拼音首字母
      */
     getPinyinInitials(str) {
+        if (typeof pinyinPro !== 'undefined' && pinyinPro.pinyin) {
+            const arr = pinyinPro.pinyin(str, { toneType: 'none', type: 'array' });
+            return arr.map(s => s.charAt(0)).join('');
+        }
+        // 降级：使用本地字典
         let result = '';
         for (let i = 0; i < str.length; i++) {
             const pinyin = this.getPinyin(str[i]);
@@ -1036,11 +1042,19 @@ const AttendanceModule = {
     },
 
     /**
-     * 获取字符串的完整拼音
+     * 获取字符串的完整拼音（带声调，每个音节首字母大写，空格分隔）
+     * 例如："黄玉馨" → "Huáng Yù Xīn"
      * @param {string} str - 字符串
+     * @param {boolean} withTone - 是否带声调（默认true）
      * @returns {string} 完整拼音
      */
-    getFullPinyin(str) {
+    getFullPinyin(str, withTone = true) {
+        if (typeof pinyinPro !== 'undefined' && pinyinPro.pinyin) {
+            const toneType = withTone ? 'symbol' : 'none';
+            const arr = pinyinPro.pinyin(str, { toneType, type: 'array', surname: 'head' });
+            return arr.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+        }
+        // 降级：使用本地字典（仅覆盖百家姓，无声调）
         let result = '';
         for (let i = 0; i < str.length; i++) {
             const pinyin = this.getPinyin(str[i]);
@@ -1077,8 +1091,8 @@ const AttendanceModule = {
             const initials = this.getPinyinInitials(name).toLowerCase();
             if (initials.includes(kw)) return true;
 
-            // 完整拼音匹配
-            const fullPinyin = this.getFullPinyin(name).toLowerCase();
+            // 完整拼音匹配（不带声调，便于搜索）
+            const fullPinyin = this.getFullPinyin(name, false).toLowerCase();
             if (fullPinyin.includes(kw)) return true;
 
             return false;
@@ -1141,6 +1155,7 @@ const AttendanceModule = {
             <div class="rollcall-scroll-item">
                 <span class="student-id">${student.id}</span>
                 <span class="student-name">${student.name}</span>
+                <span class="student-pinyin">(${this.getFullPinyin(student.name)})</span>
             </div>
         `;
         // 重置滚动位置
@@ -1230,15 +1245,17 @@ const AttendanceModule = {
 
         if (currentIndex >= students.length) {
             // 所有学生都已点完
-            document.getElementById('classrollCurrentName').textContent = '点名完成！';
             document.getElementById('classrollCurrentId').textContent = '';
+            document.getElementById('classrollCurrentName').textContent = '点名完成！';
+            document.getElementById('classrollCurrentPinyin').textContent = '';
             document.getElementById('classrollProgress').textContent = `共 ${students.length} 名学生`;
             return;
         }
 
         const student = students[currentIndex];
-        document.getElementById('classrollCurrentName').textContent = student.name;
         document.getElementById('classrollCurrentId').textContent = student.id;
+        document.getElementById('classrollCurrentName').textContent = student.name;
+        document.getElementById('classrollCurrentPinyin').textContent = `(${this.getFullPinyin(student.name)})`;
         document.getElementById('classrollProgress').textContent = `第 ${currentIndex + 1}/${students.length} 名学生`;
 
         // 更新缺席列表显示

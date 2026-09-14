@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="css/style.css">
     <!-- SheetJS for Excel processing (本地库) -->
     <script src="lib/xlsx.full.min.js"></script>
+    <!-- pinyin-pro 用于汉字转拼音 (本地库) -->
+    <script src="lib/pinyin-pro.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -104,8 +106,9 @@
                             <span class="classroll-progress" id="classrollProgress">第 0/0 名学生</span>
                         </div>
                         <div class="classroll-current">
-                            <span class="classroll-current-name" id="classrollCurrentName">请开始点名</span>
                             <span class="classroll-current-id" id="classrollCurrentId"></span>
+                            <span class="classroll-current-name" id="classrollCurrentName">请开始点名</span>
+                            <span class="classroll-current-pinyin" id="classrollCurrentPinyin"></span>
                         </div>
                         <div class="classroll-buttons">
                             <button id="btnPresent" class="btn btn-success">
