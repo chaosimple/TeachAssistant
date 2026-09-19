@@ -1101,11 +1101,22 @@ const AttendanceModule = {
             this.showSearchResults();
         });
 
-        // 回车搜索
+        // 回车直接选中搜索结果中的第一个学生
         searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
+            if (e.key !== 'Enter') return;
+
+            const keyword = searchInput.value;
+            if (!keyword || keyword.trim() === '') return;
+
+            const results = this.searchStudents(keyword);
+
+            if (results.length === 0) {
+                // 没有匹配结果时给出提示
                 this.showSearchResults();
+                return;
             }
+
+            this.selectStudent(results[0].id);
         });
 
         // 点击其他地方隐藏搜索结果
