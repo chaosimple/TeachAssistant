@@ -697,12 +697,12 @@ const AttendanceModule = {
         });
 
         // 课堂点名 - 到场按钮
-        document.getElementById('btnPresent').addEventListener('click', () => {
+        document.getElementById('btnRollCallPresent').addEventListener('click', () => {
             this.markCurrentPresent();
         });
 
         // 课堂点名 - 缺席按钮
-        document.getElementById('btnAbsent').addEventListener('click', () => {
+        document.getElementById('btnRollCallAbsent').addEventListener('click', () => {
             this.markCurrentAbsent();
         });
 
