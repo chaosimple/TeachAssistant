@@ -51,14 +51,34 @@ const CourseProgressModule = {
     },
 
     /**
-     * 获取所有课程进度记录（按创建时间倒序）
+     * 将 HH:mm 时间转换为分钟数，便于比较
+     * @param {string} timeStr - HH:mm格式时间
+     * @returns {number} 自 0 点起的分钟数，无时间返回 -1
+     */
+    timeToMinutes(timeStr) {
+        const matched = String(timeStr || '').match(/^(\d{1,2}):(\d{1,2})/);
+        if (!matched) return -1;
+        return Number(matched[1]) * 60 + Number(matched[2]);
+    },
+
+    /**
+     * 获取所有课程进度记录（按日期、时间倒序，最新在前）
      * @returns {Array} 进度记录数组
      */
     getProgressList() {
         const data = localStorage.getItem(this.STORAGE_KEY);
         const list = data ? JSON.parse(data) : [];
-        // 按 createdAt 倒序排列（最新在前）
-        return list.sort((a, b) => b.createdAt - a.createdAt);
+        // 先按日期倒序，同一天再按时间倒序（最新在前）
+        return list.sort((a, b) => {
+            const dateCompare = String(b.date || '').localeCompare(String(a.date || ''));
+            if (dateCompare !== 0) return dateCompare;
+
+            const timeCompare = this.timeToMinutes(b.time) - this.timeToMinutes(a.time);
+            if (timeCompare !== 0) return timeCompare;
+
+            // 日期和时间都相同，按录入时间倒序
+            return (b.createdAt || 0) - (a.createdAt || 0);
+        });
     },
 
     /**
