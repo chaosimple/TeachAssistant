@@ -16,6 +16,9 @@ const AttendanceModule = {
     // 当前评分
     currentScore: 0,
 
+    // 星星评分组件实例
+    starRating: null,
+
     // 课堂点名状态
     classRollCall: {
         isActive: false,
@@ -277,14 +280,21 @@ const AttendanceModule = {
     },
 
     /**
-     * 重置星星评分
+     * 重置星星评分（回到设置页配置的默认评分）
      */
     resetStarRating() {
-        this.currentScore = 0;
-        document.getElementById('ratingScore').textContent = '0';
-        document.querySelectorAll('#starRating .star').forEach(star => {
-            star.classList.remove('active', 'half', 'hover', 'hover-half');
-        });
+        this.setRatingScore(SettingsModule.getDefaultScore());
+    },
+
+    /**
+     * 设置评分（同步星星显示与 currentScore）
+     * @param {number} score - 分数 (0-100)
+     */
+    setRatingScore(score) {
+        this.currentScore = score;
+        if (this.starRating) {
+            this.starRating.setScore(score);
+        }
     },
 
     /**
@@ -408,125 +418,26 @@ const AttendanceModule = {
     },
 
     /**
-     * 星星评分转换为分数 (0.5星 = 10分)
-     * @param {number} stars - 星数 (0.5-5)
-     * @returns {number} 分数 (0-100)
-     */
-    starsToScore(stars) {
-        return Math.round(stars * 20);
-    },
-
-    /**
-     * 分数转换为星数
-     * @param {number} score - 分数 (0-100)
-     * @returns {number} 星数 (0.5-5)
-     */
-    scoreToStars(score) {
-        return score / 20;
-    },
-
-    /**
      * 初始化星星评分组件（支持半星）
      */
     initStarRating() {
-        const starContainer = document.getElementById('starRating');
-        const stars = starContainer.querySelectorAll('.star');
-
-        stars.forEach((star, index) => {
-            // 鼠标移动事件（检测左半还是右半）
-            star.addEventListener('mousemove', (e) => {
-                const rect = star.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const isLeftHalf = x < rect.width / 2;
-                const starValue = index + 1;
-                const hoverValue = isLeftHalf ? starValue - 0.5 : starValue;
-
-                // 更新悬停效果
-                stars.forEach((s, i) => {
-                    s.classList.remove('hover', 'hover-half');
-                    if (i < hoverValue) {
-                        s.classList.add('hover');
-                    } else if (i < starValue && hoverValue % 1 !== 0) {
-                        // 半星效果
-                        s.classList.add('hover-half');
-                    }
-                });
-
-                // 当前星星的半星效果
-                if (isLeftHalf) {
-                    star.classList.remove('hover');
-                    star.classList.add('hover-half');
-                } else {
-                    star.classList.remove('hover-half');
-                    star.classList.add('hover');
-                }
-
-                // 显示预览分数
-                const previewScore = this.starsToScore(hoverValue);
-                document.getElementById('ratingScore').textContent = previewScore;
-            });
-
-            // 鼠标移出
-            star.addEventListener('mouseleave', () => {
-                stars.forEach(s => s.classList.remove('hover', 'hover-half'));
-                // 恢复显示当前分数
-                document.getElementById('ratingScore').textContent = this.currentScore;
-            });
-
-            // 点击选择
-            star.addEventListener('click', (e) => {
-                const rect = star.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const isLeftHalf = x < rect.width / 2;
-                const starValue = index + 1;
-                const selectedValue = isLeftHalf ? starValue - 0.5 : starValue;
-
-                this.currentScore = this.starsToScore(selectedValue);
-
-                // 更新显示
-                document.getElementById('ratingScore').textContent = this.currentScore;
-
-                // 更新星星状态
-                stars.forEach((s, i) => {
-                    s.classList.remove('active', 'half');
-                    if (i < selectedValue) {
-                        s.classList.add('active');
-                    } else if (i < starValue && selectedValue % 1 !== 0) {
-                        s.classList.add('half');
-                    }
-                });
-
-                // 当前星星的状态
-                if (isLeftHalf) {
-                    star.classList.remove('active');
-                    star.classList.add('half');
-                } else {
-                    star.classList.remove('half');
-                    star.classList.add('active');
-                }
-            });
+        this.starRating = StarRating.create({
+            containerId: 'starRating',
+            scoreDisplayId: 'ratingScore',
+            initialScore: this.currentScore,
+            onChange: (score) => {
+                this.currentScore = score;
+            }
         });
 
         // 缺勤按钮
         document.getElementById('btnAbsent').addEventListener('click', () => {
-            this.currentScore = 0;
-            document.getElementById('ratingScore').textContent = 0;
-            stars.forEach(s => s.classList.remove('active', 'half', 'hover', 'hover-half'));
+            this.setRatingScore(0);
         });
 
         // 请假按钮
         document.getElementById('btnLeave').addEventListener('click', () => {
-            this.currentScore = 60;
-            document.getElementById('ratingScore').textContent = 60;
-            // 3颗星
-            stars.forEach((s, i) => {
-                s.classList.remove('half', 'hover', 'hover-half');
-                if (i < 3) {
-                    s.classList.add('active');
-                } else {
-                    s.classList.remove('active');
-                }
-            });
+            this.setRatingScore(60);
         });
     },
 

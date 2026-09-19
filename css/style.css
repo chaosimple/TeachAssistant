@@ -892,6 +892,64 @@ body {
     background-clip: text;
 }
 
+/* 设置页的星星评分（浅色背景，未选中的星星改用浅灰） */
+.settings-star-rating {
+    justify-content: flex-start;
+    margin-bottom: 8px;
+}
+
+.settings-star-rating .star {
+    font-size: 36px;
+}
+
+.settings-star-rating .star:not(.active):not(.half):not(.hover):not(.hover-half) {
+    color: var(--border-color);
+}
+
+.settings-star-rating .star.half {
+    background: linear-gradient(90deg, #fbbf24 50%, var(--border-color) 50%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.settings-star-rating .star.hover-half {
+    background: linear-gradient(90deg, #fcd34d 50%, var(--border-color) 50%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.settings-rating-score {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.settings-rating-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.settings-rating-clear {
+    padding: 4px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.settings-rating-clear:hover {
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+}
+
 .rating-score {
     font-size: 28px;
     font-weight: 700;

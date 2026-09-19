@@ -137,6 +137,7 @@ const ExcelModule = {
             ['semesterStart', allData.settings?.semesterStart || ''],
             ['semesterEnd', allData.settings?.semesterEnd || ''],
             ['enableCelebration', allData.settings?.enableCelebration !== false ? 'true' : 'false'],
+            ['defaultScore', allData.settings?.defaultScore ?? 0],
             ['backupTime', new Date().toLocaleString('zh-CN')]
         ];
         const settingsSheet = XLSX.utils.aoa_to_sheet(settingsData);
@@ -214,7 +215,7 @@ const ExcelModule = {
                     const workbook = XLSX.read(data, { type: 'array' });
 
                     const result = {
-                        settings: { courseName: '', semesterStart: null, semesterEnd: null, enableCelebration: true },
+                        settings: { courseName: '', semesterStart: null, semesterEnd: null, enableCelebration: true, defaultScore: 0 },
                         students: [],
                         history: [],
                         grades: {},
@@ -236,6 +237,9 @@ const ExcelModule = {
                                     result.settings.semesterEnd = String(row[1]);
                                 } else if (row[0] === 'enableCelebration') {
                                     result.settings.enableCelebration = row[1] === 'true' || row[1] === true;
+                                } else if (row[0] === 'defaultScore') {
+                                    const score = parseInt(row[1]);
+                                    result.settings.defaultScore = isNaN(score) ? 0 : Math.min(100, Math.max(0, score));
                                 }
                             }
                         }

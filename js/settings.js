@@ -6,6 +6,9 @@ const SettingsModule = {
     // 存储键名
     STORAGE_KEY: 'classroom_settings',
 
+    // 默认评分的星星组件实例
+    defaultScoreRating: null,
+
     /**
      * 解析 YYYY-MM-DD 格式的日期为本地时间（避免时区偏移问题）
      * JavaScript 的 new Date("YYYY-MM-DD") 会按 UTC 解析，在中国时区会偏移 8 小时
@@ -28,7 +31,8 @@ const SettingsModule = {
             courseName: '',
             semesterStart: null,
             semesterEnd: null,
-            enableCelebration: true // 默认启用动态点名效果
+            enableCelebration: true, // 默认启用动态点名效果
+            defaultScore: 0 // 课堂互动选择学生后的默认评分
         };
         return data ? { ...defaultSettings, ...JSON.parse(data) } : defaultSettings;
     },
@@ -61,6 +65,26 @@ const SettingsModule = {
     isCelebrationEnabled() {
         const settings = this.getSettings();
         return settings.enableCelebration !== false; // 默认为true
+    },
+
+    /**
+     * 获取课堂互动的默认评分
+     * @returns {number} 默认分数 (0-100)
+     */
+    getDefaultScore() {
+        const settings = this.getSettings();
+        const score = Number(settings.defaultScore);
+        if (!Number.isFinite(score)) return 0;
+        return Math.min(100, Math.max(0, score));
+    },
+
+    /**
+     * 根据当前默认评分显示或隐藏清除按钮（0分时无需清除）
+     */
+    updateDefaultScoreClearButton() {
+        const btn = document.getElementById('btnClearDefaultScore');
+        if (!btn || !this.defaultScoreRating) return;
+        btn.style.display = this.defaultScoreRating.getScore() > 0 ? '' : 'none';
     },
 
     /**
@@ -183,6 +207,12 @@ const SettingsModule = {
             celebrationCheckbox.checked = settings.enableCelebration !== false;
         }
 
+        // 更新默认评分的星星显示
+        if (this.defaultScoreRating) {
+            this.defaultScoreRating.setScore(this.getDefaultScore());
+            this.updateDefaultScoreClearButton();
+        }
+
         // 更新学期信息显示
         const infoEl = document.getElementById('semesterInfo');
         if (settings.semesterStart && settings.semesterEnd) {
@@ -221,6 +251,7 @@ const SettingsModule = {
         const start = document.getElementById('semesterStart').value;
         const end = document.getElementById('semesterEnd').value;
         const enableCelebration = document.getElementById('enableCelebration').checked;
+        const defaultScore = this.defaultScoreRating ? this.defaultScoreRating.getScore() : 0;
 
         // 学期日期不是必填的，可以只保存其他设置
         if (start && end) {
@@ -234,7 +265,8 @@ const SettingsModule = {
             courseName: courseName,
             semesterStart: start || null,
             semesterEnd: end || null,
-            enableCelebration: enableCelebration
+            enableCelebration: enableCelebration,
+            defaultScore: defaultScore
         });
 
         this.updateHeaderDisplay();
@@ -248,6 +280,20 @@ const SettingsModule = {
      * 初始化
      */
     init() {
+        // 默认评分星星组件
+        this.defaultScoreRating = StarRating.create({
+            containerId: 'defaultScoreRating',
+            scoreDisplayId: 'defaultScoreValue',
+            initialScore: this.getDefaultScore(),
+            onChange: () => this.updateDefaultScoreClearButton()
+        });
+
+        // 清除默认评分（星星无法点出0分，用该按钮恢复为0）
+        document.getElementById('btnClearDefaultScore').addEventListener('click', () => {
+            this.defaultScoreRating.setScore(0);
+            this.updateDefaultScoreClearButton();
+        });
+
         // 保存按钮
         document.getElementById('btnSaveSettings').addEventListener('click', () => {
             this.handleSaveSettings();

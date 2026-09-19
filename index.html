@@ -571,6 +571,24 @@
                         </div>
                     </div>
                     <div class="settings-section">
+                        <h3 class="settings-section-title">评分设置</h3>
+                        <div class="setting-item">
+                            <label class="setting-label">默认评分</label>
+                            <div class="star-rating settings-star-rating" id="defaultScoreRating">
+                                <span class="star" data-value="1">★</span>
+                                <span class="star" data-value="2">★</span>
+                                <span class="star" data-value="3">★</span>
+                                <span class="star" data-value="4">★</span>
+                                <span class="star" data-value="5">★</span>
+                            </div>
+                            <div class="settings-rating-score">
+                                <span class="settings-rating-value"><span id="defaultScoreValue">0</span> 分</span>
+                                <button type="button" id="btnClearDefaultScore" class="settings-rating-clear">清除</button>
+                            </div>
+                            <p class="setting-hint">课堂互动选中学生后默认给出的评分，5颗星代表100分，0分表示不预设</p>
+                        </div>
+                    </div>
+                    <div class="settings-section">
                         <h3 class="settings-section-title">显示效果</h3>
                         <div class="setting-item setting-checkbox-item">
                             <label class="setting-checkbox-label">
@@ -741,6 +759,7 @@
     </div>
 
     <!-- JavaScript modules -->
+    <script src="js/starRating.js"></script>
     <script src="js/settings.js"></script>
     <script src="js/courseProgress.js"></script>
     <script src="js/excel.js"></script>
