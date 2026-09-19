@@ -85,9 +85,9 @@ const StarRating = {
         stars.forEach((star, index) => {
             // 悬停预览
             star.addEventListener('mousemove', (event) => {
-                const hoverValue = starValueFromEvent(star, index, event);
-                paint(hoverValue, 'hover', 'hover-half');
-                renderScore(this.starsToScore(hoverValue));
+                const hoverScore = this.starsToScore(starValueFromEvent(star, index, event));
+                paint(hoverScore, 'hover', 'hover-half');
+                renderScore(hoverScore);
             });
 
             // 移出后恢复为已选分数
