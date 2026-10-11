@@ -1465,6 +1465,21 @@ body {
     color: #fcd34d;
 }
 
+/* 半星：左半亮、右半保持未选中色 */
+.modal-star-rating .star.half {
+    background: linear-gradient(90deg, #fbbf24 50%, var(--border-color) 50%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.modal-star-rating .star.hover-half {
+    background: linear-gradient(90deg, #fcd34d 50%, var(--border-color) 50%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
 /* Toast消息 */
 .toast {
     position: fixed;
@@ -2024,45 +2039,104 @@ body {
     margin-bottom: 16px;
 }
 
-.edit-score-input-group {
+/* 修改互动记录弹窗：内容较多，加宽并让正文区域内部滚动 */
+.modal-content-edit {
+    width: 620px;
+    max-height: 90vh;
     display: flex;
-    align-items: center;
-    gap: 8px;
+    flex-direction: column;
+}
+
+.modal-content-edit .modal-body {
+    min-height: 0;   /* 允许 flex 子项收缩，内容过长时正文内部滚动 */
+    overflow-y: auto;
+}
+
+.edit-score-section {
     margin-bottom: 16px;
 }
 
-.edit-score-input-group input {
-    flex: 1;
-    padding: 14px 18px;
-    border: 2px solid var(--border-color);
-    border-radius: var(--radius-md);
-    font-size: 18px;
-    font-weight: 600;
-    text-align: center;
-    font-family: inherit;
+/* 弹窗是亮色背景，未点亮的星星用边框色（.star 默认的白色是给深色面板用的） */
+.modal-content-edit .star-rating {
+    justify-content: flex-start;
+    margin-bottom: 6px;
 }
 
-.edit-score-input-group input:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+.modal-content-edit .star {
+    font-size: 30px;
 }
 
-.score-unit {
-    font-size: 16px;
-    color: var(--text-secondary);
-    font-weight: 500;
+.modal-content-edit .star:not(.active):not(.half):not(.hover):not(.hover-half) {
+    color: var(--border-color);
 }
 
-.edit-quick-buttons {
+.modal-content-edit .star.half {
+    background: linear-gradient(90deg, #fbbf24 50%, var(--border-color) 50%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.modal-content-edit .star.hover-half {
+    background: linear-gradient(90deg, #fcd34d 50%, var(--border-color) 50%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.modal-content-edit .small-star-rating {
+    margin-top: 0;
+}
+
+.modal-content-edit .small-star-rating .star {
+    font-size: 20px;
+}
+
+/* 星星与分数并排：分数纵向居中，高度与「大星星 + 小星星」两行一致 */
+.edit-rating-row {
     display: flex;
-    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 20px;
+}
+
+.edit-rating-stars {
+    display: flex;
+    flex-direction: column;
+}
+
+/* 最后一行不留外边距，分数块高度才与两行星星严格一致 */
+.edit-rating-stars .star-rating:last-child {
+    margin-bottom: 0;
+}
+
+/* 星星整块靠左，分数推到最右边，整行更平衡 */
+.modal-content-edit .rating-score {
+    font-size: 22px;
+    margin-bottom: 0;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+/* 分数数字比互动页原尺寸略收，但仍明显大于星星，撑得起两行的高度 */
+.modal-content-edit .rating-score span {
+    font-size: 40px;
+}
+
+/* 四个快捷按钮等宽排列，文字最多两行也能完整显示 */
+.edit-quick-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
     gap: 8px;
+    margin-top: 12px;
 }
 
 .edit-quick-buttons .btn-quick {
-    flex: 1;
-    min-width: 80px;
+    min-width: 0;
+    padding: 8px 6px;
+    line-height: 1.25;
+    white-space: normal;
     text-align: center;
     justify-content: center;
 }
@@ -2105,6 +2179,9 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+    cursor: pointer;
+    /* 双击打开修改弹窗时不要选中文字 */
+    user-select: none;
 }
 
 .today-list li .record-info {

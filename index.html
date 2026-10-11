@@ -797,7 +797,7 @@
 
         <!-- 编辑互动记录弹窗 -->
         <div id="editRecordModal" class="modal">
-            <div class="modal-content">
+            <div class="modal-content modal-content-edit">
                 <div class="modal-header">
                     <h3>修改互动记录</h3>
                     <span class="modal-close">&times;</span>
@@ -811,15 +811,32 @@
                     </div>
                     <div class="edit-score-section">
                         <label class="setting-label">修改评分</label>
-                        <div class="edit-score-input-group">
-                            <input type="number" id="editScoreInput" min="0" max="100" placeholder="0-100">
-                            <span class="score-unit">分</span>
+                        <div class="edit-rating-row">
+                            <div class="edit-rating-stars">
+                                <div class="star-rating" id="editBigStarRating">
+                                    <span class="star">★</span>
+                                    <span class="star">★</span>
+                                    <span class="star">★</span>
+                                    <span class="star">★</span>
+                                    <span class="star">★</span>
+                                </div>
+                                <div class="star-rating small-star-rating" id="editSmallStarRating">
+                                    <span class="star">★</span>
+                                    <span class="star">★</span>
+                                    <span class="star">★</span>
+                                    <span class="star">★</span>
+                                    <span class="star">★</span>
+                                </div>
+                            </div>
+                            <div class="rating-score edit-rating-score">
+                                <span id="editRatingScore">0</span> 分
+                            </div>
                         </div>
                         <div class="edit-quick-buttons">
-                            <button class="btn btn-quick absent" onclick="document.getElementById('editScoreInput').value='0'">缺勤(0分)</button>
-                            <button class="btn btn-quick leave" onclick="document.getElementById('editScoreInput').value='60'">请假(60分)</button>
-                            <button class="btn btn-quick" onclick="document.getElementById('editScoreInput').value='80'">良好(80分)</button>
-                            <button class="btn btn-quick" onclick="document.getElementById('editScoreInput').value='100'">满分(100分)</button>
+                            <button class="btn btn-quick absent" onclick="AttendanceModule.setEditRatingScore(0)">缺勤(0分)</button>
+                            <button class="btn btn-quick leave" onclick="AttendanceModule.setEditRatingScore(60)">请假(60分)</button>
+                            <button class="btn btn-quick" onclick="AttendanceModule.setEditRatingScore(80)">良好(80分)</button>
+                            <button class="btn btn-quick" onclick="AttendanceModule.setEditRatingScore(100)">满分(100分)</button>
                         </div>
                     </div>
                     <div class="edit-crown-section">

@@ -16,13 +16,15 @@ const AttendanceModule = {
     // 当前评分
     currentScore: 0,
 
-    // 星星评分组件实例：大星星每颗20分，小星星每颗2分
+    // 课堂互动页的「大星星 + 小星星」评分器
+    ratingPicker: null,
+
+    // 大星星每颗20分（十位）、小星星每颗2分（个位）
     bigStarRating: null,
     smallStarRating: null,
 
-    // 悬停预览值（null 表示当前未悬停在该组星星上）
-    bigStarPreview: null,
-    smallStarPreview: null,
+    // 修改互动记录弹窗里的同款评分器
+    editRatingPicker: null,
 
     // 本次是否封神（表现特别优秀）
     crownMarked: false,
@@ -397,53 +399,125 @@ const AttendanceModule = {
      * @param {number} score - 分数 (0-100)
      */
     setRatingScore(score) {
-        const total = Math.min(100, Math.max(0, Math.round(Number(score) || 0)));
-        const bigScore = Math.floor(total / 10) * 10;
-
-        // 清除可能残留的悬停预览值
-        this.bigStarPreview = null;
-        this.smallStarPreview = null;
-
-        if (this.bigStarRating) this.bigStarRating.setScore(bigScore);
-        if (this.smallStarRating) this.smallStarRating.setScore(total - bigScore);
-
-        this.syncRatingDisplay();
+        if (this.ratingPicker) this.ratingPicker.setScore(score);
     },
 
     /**
      * 用户点击星星后，由两组星星的当前值合成总分
      */
     updateCurrentScore() {
-        // 大星星拿满100分时小星星无处可加，清零
-        if (this.bigStarRating.getScore() >= 100 && this.smallStarRating.getScore() > 0) {
-            this.smallStarRating.setScore(0);
-        }
-        this.syncRatingDisplay();
+        if (this.ratingPicker) this.ratingPicker.recompute();
     },
 
     /**
      * 同步总分显示与小星星的可用状态
      */
     syncRatingDisplay() {
-        const bigScore = this.bigStarRating ? this.bigStarRating.getScore() : 0;
-        const smallScore = this.smallStarRating ? this.smallStarRating.getScore() : 0;
-        const smallAvailable = bigScore < 100;
-
-        this.currentScore = bigScore + (smallAvailable ? smallScore : 0);
-        document.getElementById('smallStarRating').classList.toggle('disabled', !smallAvailable);
-        this.renderRatingScore();
+        if (this.ratingPicker) this.ratingPicker.sync();
     },
 
     /**
      * 渲染总分显示（悬停时用预览值，否则用已选值）
      */
     renderRatingScore() {
-        if (!this.bigStarRating) return;
+        if (this.ratingPicker) this.ratingPicker.render();
+    },
 
-        const bigScore = this.bigStarPreview !== null ? this.bigStarPreview : this.bigStarRating.getScore();
-        const smallScore = this.smallStarPreview !== null ? this.smallStarPreview : this.smallStarRating.getScore();
+    /**
+     * 创建「大星星 + 小星星」组合评分器
+     * 大星星每颗20分（十位）、小星星每颗2分（个位），合起来可表示 0-100 的任意分数
+     * 课堂互动页和修改互动记录弹窗共用这套逻辑
+     * @param {Object} options - 配置项
+     * @param {string} options.bigContainerId - 大星星容器ID
+     * @param {string} options.smallContainerId - 小星星容器ID
+     * @param {string} options.scoreDisplayId - 总分显示元素ID
+     * @param {Function} [options.onChange] - 总分变化回调，参数为最新总分
+     * @returns {Object} 评分器 {big, small, getScore, setScore}
+     */
+    createScorePicker({ bigContainerId, smallContainerId, scoreDisplayId, onChange }) {
+        const picker = {
+            big: null,
+            small: null,
+            score: 0,
+            // 悬停预览值（null 表示当前未悬停在该组星星上）
+            bigPreview: null,
+            smallPreview: null
+        };
 
-        document.getElementById('ratingScore').textContent = Math.min(100, bigScore + smallScore);
+        // 渲染总分（悬停时用预览值，否则用已选值）
+        picker.render = () => {
+            if (!picker.big) return;
+            const bigScore = picker.bigPreview !== null ? picker.bigPreview : picker.big.getScore();
+            const smallScore = picker.smallPreview !== null ? picker.smallPreview : picker.small.getScore();
+            const el = document.getElementById(scoreDisplayId);
+            if (el) el.textContent = Math.min(100, bigScore + smallScore);
+        };
+
+        // 合成总分，并更新小星星的可用状态
+        picker.sync = () => {
+            const bigScore = picker.big ? picker.big.getScore() : 0;
+            const smallScore = picker.small ? picker.small.getScore() : 0;
+            const smallAvailable = bigScore < 100;
+
+            picker.score = bigScore + (smallAvailable ? smallScore : 0);
+
+            const smallEl = document.getElementById(smallContainerId);
+            if (smallEl) smallEl.classList.toggle('disabled', !smallAvailable);
+
+            picker.render();
+            if (typeof onChange === 'function') onChange(picker.score);
+        };
+
+        // 点击星星后重新合成总分（大星星拿满100分时小星星无处可加，清零）
+        picker.recompute = () => {
+            if (picker.big.getScore() >= 100 && picker.small.getScore() > 0) {
+                picker.small.setScore(0);
+            }
+            picker.sync();
+        };
+
+        // 大星星：每颗20分，5颗 = 100分
+        picker.big = StarRating.create({
+            containerId: bigContainerId,
+            pointsPerStar: 20,
+            initialScore: 0,
+            onChange: () => picker.recompute(),
+            onPreview: (value) => {
+                picker.bigPreview = value;
+                picker.render();
+            }
+        });
+
+        // 小星星：每颗2分，5颗 = 10分，用于打83、85这类小分
+        picker.small = StarRating.create({
+            containerId: smallContainerId,
+            pointsPerStar: 2,
+            initialScore: 0,
+            onChange: () => picker.recompute(),
+            onPreview: (value) => {
+                picker.smallPreview = value;
+                picker.render();
+            }
+        });
+
+        // 按分数点亮两组星星（大星星取十位、小星星取个位）
+        picker.setScore = (value) => {
+            const total = Math.min(100, Math.max(0, Math.round(Number(value) || 0)));
+            const bigScore = Math.floor(total / 10) * 10;
+
+            // 清除可能残留的悬停预览值
+            picker.bigPreview = null;
+            picker.smallPreview = null;
+
+            picker.big.setScore(bigScore);
+            picker.small.setScore(total - bigScore);
+            picker.sync();
+        };
+
+        picker.getScore = () => picker.score;
+
+        picker.sync();
+        return picker;
     },
 
     /**
@@ -570,28 +644,25 @@ const AttendanceModule = {
      * 初始化星星评分组件（支持半星）
      */
     initStarRating() {
-        // 大星星：每颗20分，5颗 = 100分
-        this.bigStarRating = StarRating.create({
-            containerId: 'starRating',
-            pointsPerStar: 20,
-            initialScore: 0,
-            onChange: () => this.updateCurrentScore(),
-            onPreview: (value) => {
-                this.bigStarPreview = value;
-                this.renderRatingScore();
+        // 课堂互动页：大星星每颗20分、小星星每颗2分，合起来表示 0-100
+        this.ratingPicker = this.createScorePicker({
+            bigContainerId: 'starRating',
+            smallContainerId: 'smallStarRating',
+            scoreDisplayId: 'ratingScore',
+            onChange: (score) => {
+                this.currentScore = score;
             }
         });
 
-        // 小星星：每颗2分，5颗 = 10分，用于打83、85这类小分
-        this.smallStarRating = StarRating.create({
-            containerId: 'smallStarRating',
-            pointsPerStar: 2,
-            initialScore: 0,
-            onChange: () => this.updateCurrentScore(),
-            onPreview: (value) => {
-                this.smallStarPreview = value;
-                this.renderRatingScore();
-            }
+        // 供其它逻辑直接读取的两组星星组件
+        this.bigStarRating = this.ratingPicker.big;
+        this.smallStarRating = this.ratingPicker.small;
+
+        // 修改互动记录弹窗里同样的两组星星
+        this.editRatingPicker = this.createScorePicker({
+            bigContainerId: 'editBigStarRating',
+            smallContainerId: 'editSmallStarRating',
+            scoreDisplayId: 'editRatingScore'
         });
 
         // 缺勤按钮
@@ -719,7 +790,7 @@ const AttendanceModule = {
         const todayRecords = records.filter(r => r.date === today).reverse();
 
         const listHtml = todayRecords.map((r, index) => `
-            <li data-index="${records.indexOf(r)}">
+            <li data-index="${records.indexOf(r)}" title="双击可修改这条记录">
                 <span class="record-info">
                     <span>${r.time.slice(0, 5)} ${r.studentName}${r.crown ? `<span class="record-crown" title="封神理由：${r.crownReason || '未填写'}">👑</span>` : ''}</span>
                     <span class="score-badge">${r.score}分</span>
@@ -792,7 +863,9 @@ const AttendanceModule = {
         document.getElementById('editRecordName').textContent = record.studentName;
         document.getElementById('editRecordDate').textContent = record.date;
         document.getElementById('editRecordWeek').textContent = `第${record.week}周`;
-        document.getElementById('editScoreInput').value = record.score;
+
+        // 用大/小星星回填当前评分
+        this.setEditRatingScore(record.score);
 
         // 填充封神状态与理由
         const crownCheckbox = document.getElementById('editCrownCheckbox');
@@ -802,6 +875,14 @@ const AttendanceModule = {
 
         // 显示弹窗
         document.getElementById('editRecordModal').classList.add('active');
+    },
+
+    /**
+     * 设置修改弹窗里的评分（供缺勤/请假等快捷按钮调用）
+     * @param {number} score - 分数 (0-100)
+     */
+    setEditRatingScore(score) {
+        if (this.editRatingPicker) this.editRatingPicker.setScore(score);
     },
 
     /**
@@ -821,12 +902,8 @@ const AttendanceModule = {
     confirmEditRecord() {
         if (this.currentEditIndex === null) return;
 
-        const newScore = parseInt(document.getElementById('editScoreInput').value);
-
-        if (isNaN(newScore) || newScore < 0 || newScore > 100) {
-            showToast('请输入0-100之间的分数', 'error');
-            return;
-        }
+        // 分数由星星组件保证落在 0-100 之间，无需再校验
+        const newScore = this.editRatingPicker ? this.editRatingPicker.getScore() : 0;
 
         const records = this.getRecords();
         const record = records[this.currentEditIndex];
@@ -1009,6 +1086,19 @@ const AttendanceModule = {
 
         // 初始化搜索功能
         this.initSearch();
+
+        // 双击今日记录直接打开修改弹窗
+        document.getElementById('todayList').addEventListener('dblclick', (e) => {
+            const target = e.target;
+            // 点「修改 / 删除」按钮时不触发
+            if (!target || typeof target.closest !== 'function') return;
+            if (target.closest('.record-actions')) return;
+
+            const item = target.closest('li[data-index]');
+            if (!item) return;
+
+            this.showEditModal(Number(item.dataset.index));
+        });
 
         // 初始化编辑记录弹窗
         document.getElementById('btnConfirmEditRecord').addEventListener('click', () => {

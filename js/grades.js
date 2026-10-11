@@ -11,6 +11,9 @@ const GradeModule = {
     currentEditWeek: null,
     currentModalScore: 0,
 
+    // 弹窗里星星评分组件实例
+    modalRating: null,
+
     /**
      * 获取所有成绩数据
      * @returns {Object} 以学号为键的成绩对象
@@ -243,98 +246,24 @@ const GradeModule = {
         document.getElementById('gradeStudentName').textContent =
             `学生：${student.name}（${studentId}）- 第${week}周`;
 
-        // 设置星星状态
-        this.updateModalStars(currentScore || 0);
-        document.getElementById('modalRatingScore').textContent = currentScore || 0;
+        // 同步星星与分数显示
+        this.modalRating.setScore(this.currentModalScore);
 
         document.getElementById('gradeModal').classList.add('active');
     },
 
     /**
-     * 更新弹窗星星状态
-     * @param {number} score - 分数
-     */
-    updateModalStars(score) {
-        const stars = document.querySelectorAll('#modalStarRating .star');
-        const starValue = score / 20;
-
-        stars.forEach((star, index) => {
-            const value = parseFloat(star.dataset.value);
-            if (value <= starValue) {
-                star.classList.add('active');
-            } else {
-                star.classList.remove('active');
-            }
-        });
-    },
-
-    /**
-     * 初始化弹窗星星评分组件
+     * 初始化弹窗的星星评分组件
      */
     initModalStarRating() {
-        const starContainer = document.getElementById('modalStarRating');
-        const stars = starContainer.querySelectorAll('.star');
-
-        stars.forEach((star, index) => {
-            // 鼠标移动事件
-            star.addEventListener('mousemove', (e) => {
-                const rect = star.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const isLeftHalf = x < rect.width / 2;
-                const starValue = index + 1;
-                const hoverValue = isLeftHalf ? starValue - 0.5 : starValue;
-
-                stars.forEach((s, i) => {
-                    s.classList.remove('hover', 'hover-half');
-                    if (i < hoverValue) {
-                        s.classList.add('hover');
-                    }
-                });
-
-                if (isLeftHalf) {
-                    star.classList.remove('hover');
-                    star.classList.add('hover-half');
-                } else {
-                    star.classList.remove('hover-half');
-                    star.classList.add('hover');
-                }
-
-                const previewScore = Math.round(hoverValue * 20);
-                document.getElementById('modalRatingScore').textContent = previewScore;
-            });
-
-            // 鼠标移出
-            star.addEventListener('mouseleave', () => {
-                stars.forEach(s => s.classList.remove('hover', 'hover-half'));
-                document.getElementById('modalRatingScore').textContent = this.currentModalScore;
-            });
-
-            // 点击选择
-            star.addEventListener('click', (e) => {
-                const rect = star.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const isLeftHalf = x < rect.width / 2;
-                const starValue = index + 1;
-                const selectedValue = isLeftHalf ? starValue - 0.5 : starValue;
-
-                this.currentModalScore = Math.round(selectedValue * 20);
-                document.getElementById('modalRatingScore').textContent = this.currentModalScore;
-
-                stars.forEach((s, i) => {
-                    s.classList.remove('active', 'half');
-                    if (i < selectedValue) {
-                        s.classList.add('active');
-                    }
-                });
-
-                if (isLeftHalf) {
-                    star.classList.remove('active');
-                    star.classList.add('half');
-                } else {
-                    star.classList.remove('half');
-                    star.classList.add('active');
-                }
-            });
+        this.modalRating = StarRating.create({
+            containerId: 'modalStarRating',
+            scoreDisplayId: 'modalRatingScore',
+            initialScore: 0,
+            // 点击星星后记录本次评分，确认时写入成绩
+            onChange: (score) => {
+                this.currentModalScore = score;
+            }
         });
     },
 
