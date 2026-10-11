@@ -162,8 +162,21 @@
                             <span class="star" data-value="4">★</span>
                             <span class="star" data-value="5">★</span>
                         </div>
+                        <div class="star-rating small-star-rating" id="smallStarRating">
+                            <span class="star" data-value="1">★</span>
+                            <span class="star" data-value="2">★</span>
+                            <span class="star" data-value="3">★</span>
+                            <span class="star" data-value="4">★</span>
+                            <span class="star" data-value="5">★</span>
+                        </div>
                         <div class="rating-score">
                             <span id="ratingScore">0</span> 分
+                        </div>
+                        <div class="crown-toggle">
+                            <button type="button" id="btnCrown" class="btn-crown">
+                                <span class="crown-icon">👑</span>
+                                <span class="crown-text">直接封神</span>
+                            </button>
                         </div>
                         <div class="quick-actions">
                             <button id="btnAbsent" class="btn btn-quick absent">缺勤 (0分)</button>
@@ -298,6 +311,7 @@
                                 <th>学号</th>
                                 <th>姓名</th>
                                 <th>评分</th>
+                                <th>王冠</th>
                             </tr>
                         </thead>
                         <tbody id="historyList">
@@ -409,12 +423,12 @@
                 <!-- 本学期统计区域 -->
                 <div class="statistics-group">
                     <h2 class="group-title">📚 本学期统计</h2>
-                    <div class="statistics-row">
+                    <div class="statistics-row three-cols">
                         <!-- 本学期排行榜 -->
                         <div class="statistics-section ranking-section">
                             <h3 class="section-title">
                                 <span class="title-icon">🏆</span>
-                                本学期平均分排行榜 TOP 5
+                                平均分排行榜 TOP 5
                             </h3>
                             <div class="ranking-list" id="semesterRankingList">
                                 <!-- 动态填充 -->
@@ -430,7 +444,7 @@
                         <div class="statistics-section chart-section">
                             <h3 class="section-title">
                                 <span class="title-icon">📈</span>
-                                本学期互动频次统计
+                                互动频次统计
                             </h3>
                             <div class="horizontal-chart-container" id="semesterChartContainer">
                                 <div class="chart-header">
@@ -469,6 +483,22 @@
                                 <p class="tip-text">开始课堂互动后即可查看频次图</p>
                             </div>
                         </div>
+
+                        <!-- 本学期王冠排行榜 -->
+                        <div class="statistics-section ranking-section">
+                            <h3 class="section-title">
+                                <span class="title-icon">👑</span>
+                                王冠排行榜 TOP 5
+                            </h3>
+                            <div class="ranking-list" id="crownRankingList">
+                                <!-- 动态填充 -->
+                            </div>
+                            <div class="empty-tip" id="emptyCrownRankingTip" style="display:none;">
+                                <div class="empty-icon">👑</div>
+                                <p>暂无王冠记录</p>
+                                <p class="tip-text">课堂互动时点击王冠按钮即可标注</p>
+                            </div>
+                        </div>
                     </div>
                     <!-- 本学期统计摘要 -->
                     <div class="statistics-summary semester-summary">
@@ -477,6 +507,13 @@
                             <div class="summary-info">
                                 <span class="summary-value" id="totalStudents">0</span>
                                 <span class="summary-label">学生总数</span>
+                            </div>
+                        </div>
+                        <div class="summary-card clickable" id="crownedStudentsCard" onclick="StatisticsModule.showCrownStudentsModal()" title="点击查看所有获得王冠的学生">
+                            <div class="summary-icon">👑</div>
+                            <div class="summary-info">
+                                <span class="summary-value" id="crownedStudents">0</span>
+                                <span class="summary-label">王冠学生数</span>
                             </div>
                         </div>
                         <div class="summary-card">
@@ -587,6 +624,14 @@
                             </div>
                             <p class="setting-hint">课堂互动选中学生后默认给出的评分，5颗星代表100分，0分表示不预设</p>
                         </div>
+                        <div class="setting-item">
+                            <label class="setting-label" for="defaultCrownReason">默认封神理由</label>
+                            <textarea id="defaultCrownReason" class="setting-textarea setting-textarea-compact" rows="2" placeholder="例如：课堂表现特别优秀"></textarea>
+                            <div class="settings-rating-score">
+                                <button type="button" id="btnClearDefaultCrownReason" class="settings-rating-clear">清除</button>
+                            </div>
+                            <p class="setting-hint">点击「直接封神」时，理由框会先载入这段文字，仍可临时修改；留空则不预填</p>
+                        </div>
                     </div>
                     <div class="settings-section">
                         <h3 class="settings-section-title">显示效果</h3>
@@ -666,6 +711,63 @@
             </div>
         </div>
 
+        <!-- 封神理由弹窗 -->
+        <div id="crownReasonModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>👑 直接封神</h3>
+                    <span class="modal-close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p id="crownStudentName" class="grade-student-name"></p>
+                    <div class="form-group">
+                        <label for="crownReasonInput">封神理由</label>
+                        <textarea id="crownReasonInput" rows="3" placeholder="请填写本次封神的理由"></textarea>
+                        <p class="form-hint">可留空；封神时间会自动记录</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnConfirmCrown" class="btn btn-primary">确认封神</button>
+                    <button id="btnCancelCrown" class="btn btn-cancel">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 王冠学生弹窗 -->
+        <div id="crownStudentsModal" class="modal">
+            <div class="modal-content modal-content-wide">
+                <div class="modal-header">
+                    <h3>👑 王冠学生</h3>
+                    <span class="modal-close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="table-container">
+                        <table class="data-table" id="crownStudentsTable">
+                            <thead>
+                                <tr>
+                                    <th>封神时间</th>
+                                    <th>学号</th>
+                                    <th>姓名</th>
+                                    <th>封神理由</th>
+                                </tr>
+                            </thead>
+                            <tbody id="crownStudentsList">
+                                <!-- 动态填充 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="empty-tip" id="emptyCrownStudentsTip" style="display:none;">
+                        <div class="empty-icon">👑</div>
+                        <p>暂无学生获得王冠</p>
+                        <p class="tip-text">课堂互动时点击「直接封神」即可标注</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-cancel modal-close">关闭</button>
+                </div>
+            </div>
+        </div>
+
         <!-- 表现评分弹窗 -->
         <div id="gradeModal" class="modal">
             <div class="modal-content">
@@ -718,6 +820,16 @@
                             <button class="btn btn-quick leave" onclick="document.getElementById('editScoreInput').value='60'">请假(60分)</button>
                             <button class="btn btn-quick" onclick="document.getElementById('editScoreInput').value='80'">良好(80分)</button>
                             <button class="btn btn-quick" onclick="document.getElementById('editScoreInput').value='100'">满分(100分)</button>
+                        </div>
+                    </div>
+                    <div class="edit-crown-section">
+                        <label class="edit-crown-toggle">
+                            <input type="checkbox" id="editCrownCheckbox">
+                            <span class="edit-crown-label">👑 本次封神</span>
+                        </label>
+                        <div class="form-group" id="editCrownReasonGroup">
+                            <label for="editCrownReasonInput">封神理由</label>
+                            <textarea id="editCrownReasonInput" rows="3" placeholder="请填写本次封神的理由"></textarea>
                         </div>
                     </div>
                 </div>

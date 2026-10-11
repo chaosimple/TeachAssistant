@@ -892,6 +892,111 @@ body {
     background-clip: text;
 }
 
+/* 小星星（每颗2分，用于打83、85这类小分） */
+.small-star-rating {
+    margin-top: -8px;
+    margin-bottom: 16px;
+}
+
+.small-star-rating .star {
+    font-size: 22px;
+}
+
+/* 大星星已满100分时，小星星无处可加 */
+.small-star-rating.disabled {
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+/* 王冠标记（标注本次表现特别优秀） */
+.crown-toggle {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.btn-crown {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 22px;
+    border: 2px dashed rgba(255, 255, 255, 0.25);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 16px;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* 王冠与最大的星星（48px）一样大 */
+.btn-crown .crown-icon {
+    font-size: 48px;
+    line-height: 1;
+}
+
+.btn-crown:hover {
+    border-color: #fbbf24;
+    color: #fbbf24;
+}
+
+.btn-crown.active {
+    border-style: solid;
+    border-color: #fbbf24;
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+    box-shadow: 0 0 16px rgba(251, 191, 36, 0.35);
+}
+
+.btn-crown.active .crown-icon {
+    animation: crown-pop 0.4s ease;
+}
+
+/* 点击「直接封神」时的动画：金光爆闪 + 王冠腾起 */
+.btn-crown.crowning {
+    animation: crown-burst 0.9s ease;
+}
+
+@keyframes crown-burst {
+    0% {
+        transform: scale(1);
+        border-color: rgba(255, 255, 255, 0.25);
+        box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+    }
+    25% {
+        transform: scale(1.08);
+        border-color: #fbbf24;
+        box-shadow: 0 0 30px 8px rgba(251, 191, 36, 0.55);
+    }
+    55% {
+        transform: scale(0.97);
+        box-shadow: 0 0 18px 3px rgba(251, 191, 36, 0.3);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+    }
+}
+
+.btn-crown.crowning .crown-icon {
+    animation: crown-fly 0.9s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes crown-fly {
+    0% { transform: translateY(0) rotate(0) scale(1); }
+    30% { transform: translateY(-20px) rotate(-14deg) scale(1.28); }
+    60% { transform: translateY(0) rotate(9deg) scale(1.1); }
+    100% { transform: translateY(0) rotate(0) scale(1); }
+}
+
+@keyframes crown-pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.35) rotate(-8deg); }
+    100% { transform: scale(1); }
+}
+
 /* 设置页的星星评分（浅色背景，未选中的星星改用浅灰） */
 .settings-star-rating {
     justify-content: flex-start;
@@ -1204,6 +1309,17 @@ body {
     animation: modalIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* 需要放表格的弹窗（如王冠学生列表） */
+.modal-content-wide {
+    width: 760px;
+}
+
+/* 获王冠的学生可能很多，表格内部滚动，避免弹窗超出屏幕 */
+#crownStudentsModal .table-container {
+    max-height: 55vh;
+    overflow-y: auto;
+}
+
 @keyframes modalIn {
     from {
         opacity: 0;
@@ -1283,6 +1399,36 @@ body {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.form-group textarea {
+    width: 100%;
+    padding: 14px 18px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-family: inherit;
+    line-height: 1.5;
+    resize: vertical;
+    transition: all 0.2s ease;
+}
+
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.form-hint {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* 封神理由单元格：内容较长时换行显示 */
+.crown-reason {
+    max-width: 320px;
+    word-break: break-word;
 }
 
 .grade-student-name {
@@ -1570,6 +1716,11 @@ body {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+/* 高度更紧凑的文本域（如默认封神理由，通常只有一行） */
+.setting-textarea-compact {
+    min-height: 76px;
 }
 
 /* 复选框设置项样式 */
@@ -1916,6 +2067,39 @@ body {
     justify-content: center;
 }
 
+/* 修改互动记录弹窗里的封神部分 */
+.edit-crown-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.edit-crown-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.edit-crown-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #f59e0b;
+}
+
+.edit-crown-toggle input[type="checkbox"]:checked ~ .edit-crown-label {
+    color: #b45309;
+}
+
+#editCrownReasonGroup {
+    margin-top: 16px;
+    margin-bottom: 0;
+}
+
 /* 今日互动记录操作按钮样式 */
 .today-list li {
     display: flex;
@@ -1928,6 +2112,12 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+/* 今日记录中的王冠标记 */
+.record-crown {
+    margin-left: 6px;
+    font-size: 14px;
 }
 
 .today-list li .record-actions {
@@ -2006,6 +2196,11 @@ body {
     grid-template-columns: 1fr 2fr;
     gap: 24px;
     margin-bottom: 20px;
+}
+
+/* 本学期统计：平均分榜 / 频次图 / 王冠榜 三栏 */
+.statistics-row.three-cols {
+    grid-template-columns: 1fr 2fr 1fr;
 }
 
 .statistics-section {
@@ -2119,6 +2314,19 @@ body {
 
 .ranking-medal.medal-5 {
     background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+/* 王冠榜右侧：直接画出王冠数量，不用奖牌也不写数字 */
+.ranking-crowns {
+    flex-shrink: 0;
+    max-width: 50%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0 1px;
+    font-size: 16px;
+    line-height: 1.2;
 }
 
 .ranking-info {
@@ -2375,6 +2583,11 @@ body {
     margin-top: 8px;
 }
 
+/* 本学期摘要比本周多一张「王冠学生」卡片 */
+.semester-summary {
+    grid-template-columns: repeat(5, 1fr);
+}
+
 .summary-card {
     background: var(--card-bg);
     border-radius: var(--radius-lg);
@@ -2389,6 +2602,16 @@ body {
 .summary-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
+}
+
+/* 可点击的摘要卡片（如「王冠学生数」） */
+.summary-card.clickable {
+    cursor: pointer;
+}
+
+.summary-card.clickable:hover {
+    border-color: #fbbf24;
+    box-shadow: 0 6px 18px rgba(251, 191, 36, 0.25);
 }
 
 .summary-icon {
@@ -2427,6 +2650,11 @@ body {
 
     .statistics-summary {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* 三栏在窄屏下改为纵向堆叠，避免排行榜被挤扁 */
+    .statistics-row.three-cols {
+        grid-template-columns: 1fr;
     }
 }
 

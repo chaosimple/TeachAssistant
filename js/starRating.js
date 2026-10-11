@@ -1,45 +1,33 @@
 /**
  * 星星评分组件
- * 5颗星代表100分，支持半星（半星 = 10分）
+ * 支持半星，每颗星代表的分值可配置（默认每颗20分，即5颗星 = 100分）
  * 供课堂互动评分、设置页默认评分等场景复用
  */
 const StarRating = {
-    // 每颗星对应的分数
+    // 每颗星默认对应的分数
     POINTS_PER_STAR: 20,
-
-    /**
-     * 分数转换为星数
-     * @param {number} score - 分数 (0-100)
-     * @returns {number} 星数 (0-5)
-     */
-    scoreToStars(score) {
-        return (Number(score) || 0) / this.POINTS_PER_STAR;
-    },
-
-    /**
-     * 星数转换为分数
-     * @param {number} stars - 星数 (0-5)
-     * @returns {number} 分数 (0-100)
-     */
-    starsToScore(stars) {
-        return Math.round(stars * this.POINTS_PER_STAR);
-    },
 
     /**
      * 创建星星评分组件实例
      * @param {Object} options - 配置项
      * @param {string} options.containerId - 星星容器元素ID
      * @param {string} [options.scoreDisplayId] - 分数显示元素ID
+     * @param {number} [options.pointsPerStar] - 每颗星代表的分数，默认20（5颗星 = 100分）
      * @param {number} [options.initialScore] - 初始分数，默认0
-     * @param {Function} [options.onChange] - 分数变化回调，参数为最新分数
+     * @param {Function} [options.onChange] - 用户点击星星后的回调，参数为最新分数
+     * @param {Function} [options.onPreview] - 悬停预览回调，参数为预览分数；鼠标移出时传 null
      * @returns {Object} 组件实例 {getScore, setScore}
      */
-    create({ containerId, scoreDisplayId, initialScore = 0, onChange }) {
+    create({ containerId, scoreDisplayId, pointsPerStar = this.POINTS_PER_STAR, initialScore = 0, onChange, onPreview }) {
         const container = document.getElementById(containerId);
         const stars = Array.from(container.querySelectorAll('.star'));
         const scoreEl = scoreDisplayId ? document.getElementById(scoreDisplayId) : null;
 
         let score = 0;
+
+        // 分数与星数的换算（按本组星星的分值）
+        const scoreToStars = (value) => (Number(value) || 0) / pointsPerStar;
+        const starsToScore = (value) => Math.round(value * pointsPerStar);
 
         // 更新分数显示
         const renderScore = (value) => {
@@ -53,7 +41,7 @@ const StarRating = {
          * @param {string} halfClass - 半星样式类
          */
         const paint = (value, fullClass, halfClass) => {
-            const starValue = this.scoreToStars(value);
+            const starValue = scoreToStars(value);
             stars.forEach((star, index) => {
                 star.classList.remove(fullClass, halfClass);
                 if (index + 1 <= starValue) {
@@ -85,20 +73,22 @@ const StarRating = {
         stars.forEach((star, index) => {
             // 悬停预览
             star.addEventListener('mousemove', (event) => {
-                const hoverScore = this.starsToScore(starValueFromEvent(star, index, event));
+                const hoverScore = starsToScore(starValueFromEvent(star, index, event));
                 paint(hoverScore, 'hover', 'hover-half');
                 renderScore(hoverScore);
+                if (typeof onPreview === 'function') onPreview(hoverScore);
             });
 
             // 移出后恢复为已选分数
             star.addEventListener('mouseleave', () => {
                 clearHover();
                 renderScore(score);
+                if (typeof onPreview === 'function') onPreview(null);
             });
 
             // 点击选择
             star.addEventListener('click', (event) => {
-                score = this.starsToScore(starValueFromEvent(star, index, event));
+                score = starsToScore(starValueFromEvent(star, index, event));
                 renderScore(score);
                 paint(score, 'active', 'half');
                 if (typeof onChange === 'function') onChange(score);

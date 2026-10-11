@@ -16,8 +16,25 @@ const AttendanceModule = {
     // 当前评分
     currentScore: 0,
 
-    // 星星评分组件实例
-    starRating: null,
+    // 星星评分组件实例：大星星每颗20分，小星星每颗2分
+    bigStarRating: null,
+    smallStarRating: null,
+
+    // 悬停预览值（null 表示当前未悬停在该组星星上）
+    bigStarPreview: null,
+    smallStarPreview: null,
+
+    // 本次是否封神（表现特别优秀）
+    crownMarked: false,
+
+    // 本次封神的理由（封神时由老师填写，默认为空）
+    crownReason: '',
+
+    // 封神动画时长（毫秒），动画播完才弹出理由输入框
+    CROWN_ANIMATION_MS: 700,
+
+    // 待弹出封神理由输入框的定时器
+    crownModalTimer: null,
 
     // 课堂点名状态
     classRollCall: {
@@ -280,21 +297,153 @@ const AttendanceModule = {
     },
 
     /**
-     * 重置星星评分（回到设置页配置的默认评分）
+     * 重置评分面板（星星回到设置的默认分，并清除封神标记）
      */
     resetStarRating() {
         this.setRatingScore(SettingsModule.getDefaultScore());
+        this.setCrownMarked(false);
     },
 
     /**
-     * 设置评分（同步星星显示与 currentScore）
+     * 设置封神标记并同步按钮状态
+     * 只负责状态与按钮样式，不改动分数（重置、确认评分后都会调用它）
+     * @param {boolean} marked - 是否封神
+     */
+    setCrownMarked(marked) {
+        this.crownMarked = !!marked;
+        if (!this.crownMarked) {
+            this.crownReason = '';
+            // 取消可能还在等待弹出的理由输入框（如动画播放中切换了学生）
+            if (this.crownModalTimer) {
+                clearTimeout(this.crownModalTimer);
+                this.crownModalTimer = null;
+            }
+        }
+        const btn = document.getElementById('btnCrown');
+        if (btn) btn.classList.toggle('active', this.crownMarked);
+    },
+
+    /**
+     * 打开封神流程：先播放封神动画，动画播完再弹出理由输入框
+     * 若立刻弹窗，全屏遮罩会盖住按钮，动画就看不到了
+     */
+    openCrownModal() {
+        const btn = document.getElementById('btnCrown');
+        if (btn) {
+            btn.classList.remove('crowning');
+            // 强制重排，保证连续点击也能重新播放动画
+            void btn.offsetWidth;
+            btn.classList.add('crowning');
+        }
+
+        if (this.crownModalTimer) clearTimeout(this.crownModalTimer);
+        this.crownModalTimer = setTimeout(() => {
+            this.crownModalTimer = null;
+            this.showCrownModal();
+        }, this.CROWN_ANIMATION_MS);
+    },
+
+    /**
+     * 显示封神理由输入框
+     * 理由框先载入设置页配置的「默认封神理由」，老师可以在此基础上修改
+     */
+    showCrownModal() {
+        const input = document.getElementById('crownReasonInput');
+        if (input) {
+            input.value = this.crownReason || SettingsModule.getDefaultCrownReason();
+        }
+
+        const nameEl = document.getElementById('crownStudentName');
+        if (nameEl && this.currentStudent) {
+            nameEl.textContent = `${this.currentStudent.id} - ${this.currentStudent.name}`;
+        }
+
+        document.getElementById('crownReasonModal').classList.add('active');
+
+        if (input) input.focus();
+    },
+
+    /**
+     * 确认封神：记录理由，并把本次评分直接拉满
+     */
+    confirmCrown() {
+        const input = document.getElementById('crownReasonInput');
+        const reason = input ? input.value.trim() : '';
+
+        this.setCrownMarked(true);
+        this.crownReason = reason;
+        this.setRatingScore(100);
+
+        this.closeCrownModal();
+    },
+
+    /**
+     * 关闭封神理由弹窗
+     */
+    closeCrownModal() {
+        // 动画还在播时取消，要一并取消待弹出的输入框
+        if (this.crownModalTimer) {
+            clearTimeout(this.crownModalTimer);
+            this.crownModalTimer = null;
+        }
+
+        document.getElementById('crownReasonModal').classList.remove('active');
+        const btn = document.getElementById('btnCrown');
+        if (btn) btn.classList.remove('crowning');
+    },
+
+    /**
+     * 设置评分（大星星取十位、小星星取个位，并同步显示）
      * @param {number} score - 分数 (0-100)
      */
     setRatingScore(score) {
-        this.currentScore = score;
-        if (this.starRating) {
-            this.starRating.setScore(score);
+        const total = Math.min(100, Math.max(0, Math.round(Number(score) || 0)));
+        const bigScore = Math.floor(total / 10) * 10;
+
+        // 清除可能残留的悬停预览值
+        this.bigStarPreview = null;
+        this.smallStarPreview = null;
+
+        if (this.bigStarRating) this.bigStarRating.setScore(bigScore);
+        if (this.smallStarRating) this.smallStarRating.setScore(total - bigScore);
+
+        this.syncRatingDisplay();
+    },
+
+    /**
+     * 用户点击星星后，由两组星星的当前值合成总分
+     */
+    updateCurrentScore() {
+        // 大星星拿满100分时小星星无处可加，清零
+        if (this.bigStarRating.getScore() >= 100 && this.smallStarRating.getScore() > 0) {
+            this.smallStarRating.setScore(0);
         }
+        this.syncRatingDisplay();
+    },
+
+    /**
+     * 同步总分显示与小星星的可用状态
+     */
+    syncRatingDisplay() {
+        const bigScore = this.bigStarRating ? this.bigStarRating.getScore() : 0;
+        const smallScore = this.smallStarRating ? this.smallStarRating.getScore() : 0;
+        const smallAvailable = bigScore < 100;
+
+        this.currentScore = bigScore + (smallAvailable ? smallScore : 0);
+        document.getElementById('smallStarRating').classList.toggle('disabled', !smallAvailable);
+        this.renderRatingScore();
+    },
+
+    /**
+     * 渲染总分显示（悬停时用预览值，否则用已选值）
+     */
+    renderRatingScore() {
+        if (!this.bigStarRating) return;
+
+        const bigScore = this.bigStarPreview !== null ? this.bigStarPreview : this.bigStarRating.getScore();
+        const smallScore = this.smallStarPreview !== null ? this.smallStarPreview : this.smallStarRating.getScore();
+
+        document.getElementById('ratingScore').textContent = Math.min(100, bigScore + smallScore);
     },
 
     /**
@@ -421,12 +570,27 @@ const AttendanceModule = {
      * 初始化星星评分组件（支持半星）
      */
     initStarRating() {
-        this.starRating = StarRating.create({
+        // 大星星：每颗20分，5颗 = 100分
+        this.bigStarRating = StarRating.create({
             containerId: 'starRating',
-            scoreDisplayId: 'ratingScore',
-            initialScore: this.currentScore,
-            onChange: (score) => {
-                this.currentScore = score;
+            pointsPerStar: 20,
+            initialScore: 0,
+            onChange: () => this.updateCurrentScore(),
+            onPreview: (value) => {
+                this.bigStarPreview = value;
+                this.renderRatingScore();
+            }
+        });
+
+        // 小星星：每颗2分，5颗 = 10分，用于打83、85这类小分
+        this.smallStarRating = StarRating.create({
+            containerId: 'smallStarRating',
+            pointsPerStar: 2,
+            initialScore: 0,
+            onChange: () => this.updateCurrentScore(),
+            onPreview: (value) => {
+                this.smallStarPreview = value;
+                this.renderRatingScore();
             }
         });
 
@@ -439,6 +603,34 @@ const AttendanceModule = {
         document.getElementById('btnLeave').addEventListener('click', () => {
             this.setRatingScore(60);
         });
+
+        // 直接封神：弹出理由输入框，确认后直接给满分
+        document.getElementById('btnCrown').addEventListener('click', () => {
+            if (this.crownMarked) {
+                // 已封神，再次点击取消
+                this.setCrownMarked(false);
+                return;
+            }
+            this.openCrownModal();
+        });
+
+        document.getElementById('btnConfirmCrown').addEventListener('click', () => {
+            this.confirmCrown();
+        });
+
+        document.getElementById('btnCancelCrown').addEventListener('click', () => {
+            this.closeCrownModal();
+        });
+
+        // 理由输入框回车即确认
+        document.getElementById('crownReasonInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.confirmCrown();
+            }
+        });
+
+        this.syncRatingDisplay();
     },
 
     /**
@@ -455,6 +647,7 @@ const AttendanceModule = {
         }
 
         const score = this.currentScore;
+        const crowned = this.crownMarked;
 
         // 记录互动
         const record = {
@@ -463,7 +656,9 @@ const AttendanceModule = {
             studentId: this.currentStudent.id,
             studentName: this.currentStudent.name,
             score: score,
-            week: currentWeek
+            week: currentWeek,
+            crown: crowned,
+            crownReason: crowned ? this.crownReason : ''
         };
 
         this.addRecord(record);
@@ -474,10 +669,14 @@ const AttendanceModule = {
         // 保存成绩到对应周数
         GradeModule.setWeekScore(this.currentStudent.id, currentWeek, score);
 
-        showToast(`已记录：${this.currentStudent.name} - 第${currentWeek}周 - ${score}分`, 'success');
+        showToast(
+            `已记录：${this.currentStudent.name} - 第${currentWeek}周 - ${score}分${crowned ? ' 👑' : ''}`,
+            'success'
+        );
 
         // 重置状态
         this.currentStudent = null;
+        this.setCrownMarked(false);
         document.getElementById('rollcallRating').style.display = 'none';
 
         // 刷新显示
@@ -497,6 +696,7 @@ const AttendanceModule = {
 
         // 重置状态
         this.currentStudent = null;
+        this.setCrownMarked(false);
         document.getElementById('rollcallRating').style.display = 'none';
 
         // 刷新显示
@@ -521,7 +721,7 @@ const AttendanceModule = {
         const listHtml = todayRecords.map((r, index) => `
             <li data-index="${records.indexOf(r)}">
                 <span class="record-info">
-                    <span>${r.time.slice(0, 5)} ${r.studentName}</span>
+                    <span>${r.time.slice(0, 5)} ${r.studentName}${r.crown ? `<span class="record-crown" title="封神理由：${r.crownReason || '未填写'}">👑</span>` : ''}</span>
                     <span class="score-badge">${r.score}分</span>
                 </span>
                 <div class="record-actions">
@@ -553,7 +753,7 @@ const AttendanceModule = {
         });
 
         if (filteredRecords.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">暂无记录</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">暂无记录</td></tr>';
             return;
         }
 
@@ -564,6 +764,7 @@ const AttendanceModule = {
                 <td>${r.studentId}</td>
                 <td>${r.studentName}</td>
                 <td><span class="score-badge">${r.score}分</span></td>
+                <td>${r.crown ? '👑' : '-'}</td>
             </tr>
         `).join('');
     },
@@ -593,8 +794,25 @@ const AttendanceModule = {
         document.getElementById('editRecordWeek').textContent = `第${record.week}周`;
         document.getElementById('editScoreInput').value = record.score;
 
+        // 填充封神状态与理由
+        const crownCheckbox = document.getElementById('editCrownCheckbox');
+        crownCheckbox.checked = !!record.crown;
+        document.getElementById('editCrownReasonInput').value = record.crownReason || '';
+        this.syncEditCrownReason();
+
         // 显示弹窗
         document.getElementById('editRecordModal').classList.add('active');
+    },
+
+    /**
+     * 根据「本次封神」勾选状态显示或隐藏理由输入框
+     */
+    syncEditCrownReason() {
+        const checkbox = document.getElementById('editCrownCheckbox');
+        const group = document.getElementById('editCrownReasonGroup');
+        if (checkbox && group) {
+            group.style.display = checkbox.checked ? '' : 'none';
+        }
     },
 
     /**
@@ -624,6 +842,13 @@ const AttendanceModule = {
 
         // 更新互动记录中的评分
         record.score = newScore;
+
+        // 更新封神标记与理由（取消勾选即取消封神）
+        const crownChecked = document.getElementById('editCrownCheckbox').checked;
+        const reasonInput = document.getElementById('editCrownReasonInput');
+        record.crown = crownChecked;
+        record.crownReason = crownChecked ? reasonInput.value.trim() : '';
+
         this.saveRecords(records);
 
         // 同步更新成绩管理中的成绩
@@ -639,7 +864,7 @@ const AttendanceModule = {
         GradeModule.renderGradeList();
         StudentModule.renderStudentList();
 
-        showToast('评分已修改', 'success');
+        showToast(crownChecked ? '记录已修改，已封神 👑' : '记录已修改', 'success');
     },
 
     /**
@@ -788,6 +1013,11 @@ const AttendanceModule = {
         // 初始化编辑记录弹窗
         document.getElementById('btnConfirmEditRecord').addEventListener('click', () => {
             this.confirmEditRecord();
+        });
+
+        // 勾选/取消「本次封神」时同步理由输入框的显示
+        document.getElementById('editCrownCheckbox').addEventListener('change', () => {
+            this.syncEditCrownReason();
         });
     },
 

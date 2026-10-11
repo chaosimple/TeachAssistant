@@ -172,12 +172,73 @@ const StatisticsModule = {
     },
 
     /**
+     * 获取本学期王冠排行榜数据（仅统计获得过王冠的学生）
+     * @returns {Array} [{id, name, crownCount, interactionCount, avgScore}]，按王冠数降序、学号升序
+     */
+    getCrownRanking() {
+        const students = StudentModule.getStudents();
+        const records = AttendanceModule.getRecords();
+        const stats = [];
+
+        students.forEach(student => {
+            const studentRecords = records.filter(r => r.studentId === student.id);
+            const crownCount = studentRecords.filter(r => r.crown).length;
+            if (crownCount > 0) {
+                const totalScore = studentRecords.reduce((sum, r) => sum + (r.score || 0), 0);
+                stats.push({
+                    id: student.id,
+                    name: student.name,
+                    crownCount: crownCount,
+                    interactionCount: studentRecords.length,
+                    avgScore: Math.round(totalScore / studentRecords.length * 10) / 10
+                });
+            }
+        });
+
+        // 王冠数降序，数量相同时按学号升序
+        stats.sort((a, b) => {
+            if (b.crownCount !== a.crownCount) return b.crownCount - a.crownCount;
+            return a.id.localeCompare(b.id, 'zh-CN');
+        });
+
+        return stats;
+    },
+
+    /**
+     * 渲染名次奖牌（默认的排行榜左侧标记）
+     * @param {number} index - 名次下标（从0开始）
+     * @returns {string} 奖牌HTML
+     */
+    renderMedal(index) {
+        if (index === 0) return '<div class="ranking-medal gold"></div>';
+        if (index === 1) return '<div class="ranking-medal silver"></div>';
+        if (index === 2) return '<div class="ranking-medal bronze"></div>';
+        if (index === 3) return '<div class="ranking-medal other medal-4">🎖️</div>';
+        return '<div class="ranking-medal other medal-5">⭐</div>';
+    },
+
+    /**
+     * 渲染王冠标记（王冠榜不用奖牌也不用数字，直接画出王冠数量）
+     * @param {number} count - 王冠数量
+     * @returns {string} 王冠HTML
+     */
+    renderCrownBadge(count) {
+        const crowns = '👑'.repeat(Math.max(0, count));
+        return `<div class="ranking-crowns" title="${count}个王冠">${crowns}</div>`;
+    },
+
+    /**
      * 渲染排行榜（通用方法）
      * @param {Array} stats - 统计数据
      * @param {string} containerId - 容器ID
      * @param {string} emptyTipId - 空提示ID
+     * @param {Object} [options] - 配置项
+     * @param {string} [options.valueKey] - 取值的字段名，默认 'avgScore'
+     * @param {string} [options.label] - 取值下方的说明文字，默认 '平均分'
+     * @param {Function} [options.badge] - 自定义左侧标记，(student, index) => HTML，默认按名次显示奖牌
+     * @param {string} [options.badgePosition] - 标记位置：'start'（默认，在姓名左侧）或 'end'（在姓名右侧，且不显示分数）
      */
-    renderRanking(stats, containerId, emptyTipId) {
+    renderRanking(stats, containerId, emptyTipId, { valueKey = 'avgScore', label = '平均分', badge, badgePosition = 'start' } = {}) {
         const container = document.getElementById(containerId);
         const emptyTip = document.getElementById(emptyTipId);
 
@@ -193,33 +254,33 @@ const StatisticsModule = {
         const top5 = stats.slice(0, 5);
 
         const html = top5.map((student, index) => {
-            let medalClass = '';
-            let medalContent = '';
+            const badgeHtml = typeof badge === 'function'
+                ? badge(student, index)
+                : this.renderMedal(index);
 
-            if (index === 0) {
-                medalClass = 'gold';
-            } else if (index === 1) {
-                medalClass = 'silver';
-            } else if (index === 2) {
-                medalClass = 'bronze';
-            } else if (index === 3) {
-                medalClass = 'other medal-4';
-                medalContent = '🎖️';
-            } else {
-                medalClass = 'other medal-5';
-                medalContent = '⭐';
+            const infoHtml = `
+                    <div class="ranking-info">
+                        <div class="ranking-name">${student.name}</div>
+                        <div class="ranking-id">${student.id}</div>
+                    </div>`;
+
+            // 标记在右侧的榜单不显示分数，标记本身就是取值
+            if (badgePosition === 'end') {
+                return `
+                <div class="ranking-item rank-${index + 1}">
+                    ${infoHtml}
+                    ${badgeHtml}
+                </div>
+            `;
             }
 
             return `
                 <div class="ranking-item rank-${index + 1}">
-                    <div class="ranking-medal ${medalClass}">${medalContent}</div>
-                    <div class="ranking-info">
-                        <div class="ranking-name">${student.name}</div>
-                        <div class="ranking-id">${student.id}</div>
-                    </div>
+                    ${badgeHtml}
+                    ${infoHtml}
                     <div class="ranking-score">
-                        <div class="ranking-score-value">${student.avgScore}</div>
-                        <div class="ranking-score-label">平均分</div>
+                        <div class="ranking-score-value">${student[valueKey]}</div>
+                        <div class="ranking-score-label">${label}</div>
                     </div>
                 </div>
             `;
@@ -300,6 +361,80 @@ const StatisticsModule = {
     },
 
     /**
+     * 渲染本学期王冠排行榜（按王冠数降序取TOP5，王冠直接画在姓名右侧）
+     */
+    renderCrownRanking() {
+        const stats = this.getCrownRanking();
+        this.renderRanking(stats, 'crownRankingList', 'emptyCrownRankingTip', {
+            badge: (student) => this.renderCrownBadge(student.crownCount),
+            badgePosition: 'end'
+        });
+    },
+
+    /**
+     * 获取所有封神记录（按时间倒序，最新的在前）
+     * @returns {Array} 带有 crown 标记的互动记录
+     */
+    getCrownRecords() {
+        return AttendanceModule.getRecords()
+            .filter(r => r.crown)
+            .sort((a, b) => {
+                const dateCompare = String(b.date || '').localeCompare(String(a.date || ''));
+                if (dateCompare !== 0) return dateCompare;
+                const timeCompare = String(b.time || '').localeCompare(String(a.time || ''));
+                if (timeCompare !== 0) return timeCompare;
+                return 0;
+            });
+    },
+
+    /**
+     * 转义文本，避免封神理由里的特殊字符破坏页面结构
+     * @param {string} text - 原始文本
+     * @returns {string} 转义后的文本
+     */
+    escapeHtml(text) {
+        return String(text == null ? '' : text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    },
+
+    /**
+     * 渲染「王冠学生」弹窗内容（列出每一条封神记录：什么时间、因为什么理由）
+     */
+    renderCrownStudentsModal() {
+        const records = this.getCrownRecords();
+        const tbody = document.getElementById('crownStudentsList');
+        const emptyTip = document.getElementById('emptyCrownStudentsTip');
+
+        if (records.length === 0) {
+            tbody.innerHTML = '';
+            emptyTip.style.display = 'block';
+            return;
+        }
+
+        emptyTip.style.display = 'none';
+
+        tbody.innerHTML = records.map(record => `
+            <tr>
+                <td>${record.date} ${record.time}</td>
+                <td>${record.studentId}</td>
+                <td>${record.studentName}</td>
+                <td class="crown-reason">${this.escapeHtml(record.crownReason) || '-'}</td>
+            </tr>
+        `).join('');
+    },
+
+    /**
+     * 打开「王冠学生」弹窗
+     */
+    showCrownStudentsModal() {
+        this.renderCrownStudentsModal();
+        document.getElementById('crownStudentsModal').classList.add('active');
+    },
+
+    /**
      * 渲染本周频次图
      */
     renderWeeklyChart() {
@@ -358,6 +493,9 @@ const StatisticsModule = {
         // 学生总数
         document.getElementById('totalStudents').textContent = students.length;
 
+        // 获得过王冠的学生数
+        document.getElementById('crownedStudents').textContent = this.getCrownRanking().length;
+
         // 互动总次数
         document.getElementById('totalInteractions').textContent = records.length;
 
@@ -386,6 +524,7 @@ const StatisticsModule = {
 
         // 本学期统计
         this.renderSemesterRanking();
+        this.renderCrownRanking();
         this.renderSemesterChart();
         this.renderSemesterSummary();
     },

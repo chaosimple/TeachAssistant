@@ -138,6 +138,7 @@ const ExcelModule = {
             ['semesterEnd', allData.settings?.semesterEnd || ''],
             ['enableCelebration', allData.settings?.enableCelebration !== false ? 'true' : 'false'],
             ['defaultScore', allData.settings?.defaultScore ?? 0],
+            ['defaultCrownReason', allData.settings?.defaultCrownReason || ''],
             ['backupTime', new Date().toLocaleString('zh-CN')]
         ];
         const settingsSheet = XLSX.utils.aoa_to_sheet(settingsData);
@@ -152,9 +153,13 @@ const ExcelModule = {
         XLSX.utils.book_append_sheet(workbook, studentsSheet, '学生名单');
 
         // 互动记录工作表
-        const historyData = [['日期', '时间', '学号', '姓名', '评分', '周次']];
+        const historyData = [['日期', '时间', '学号', '姓名', '评分', '周次', '王冠', '封神理由']];
         allData.history.forEach(h => {
-            historyData.push([h.date, h.time, h.studentId, h.studentName, h.score, h.week]);
+            historyData.push([
+                h.date, h.time, h.studentId, h.studentName, h.score, h.week,
+                h.crown ? '是' : '否',
+                h.crown ? (h.crownReason || '') : ''
+            ]);
         });
         const historySheet = XLSX.utils.aoa_to_sheet(historyData);
         XLSX.utils.book_append_sheet(workbook, historySheet, '互动记录');
@@ -215,7 +220,7 @@ const ExcelModule = {
                     const workbook = XLSX.read(data, { type: 'array' });
 
                     const result = {
-                        settings: { courseName: '', semesterStart: null, semesterEnd: null, enableCelebration: true, defaultScore: 0 },
+                        settings: { courseName: '', semesterStart: null, semesterEnd: null, enableCelebration: true, defaultScore: 0, defaultCrownReason: '' },
                         students: [],
                         history: [],
                         grades: {},
@@ -240,6 +245,9 @@ const ExcelModule = {
                                 } else if (row[0] === 'defaultScore') {
                                     const score = parseInt(row[1]);
                                     result.settings.defaultScore = isNaN(score) ? 0 : Math.min(100, Math.max(0, score));
+                                } else if (row[0] === 'defaultCrownReason') {
+                                    // 旧版本文件没有该行，缺失时保持为空
+                                    result.settings.defaultCrownReason = row[1] === undefined || row[1] === null ? '' : String(row[1]).trim();
                                 }
                             }
                         }
@@ -268,13 +276,18 @@ const ExcelModule = {
                         for (let i = 1; i < historyRows.length; i++) {
                             const row = historyRows[i];
                             if (row && row.length >= 5 && row[0] && row[2]) {
+                                // 王冠、封神理由两列为旧版本文件所没有，缺失时按未封神处理
+                                const crownCell = row[6] === undefined || row[6] === null ? '' : String(row[6]).trim();
+                                const crown = crownCell === '是' || crownCell === 'true' || crownCell === 'TRUE' || crownCell === '1';
                                 result.history.push({
                                     date: String(row[0]).trim(),
                                     time: String(row[1]).trim(),
                                     studentId: String(row[2]).trim(),
                                     studentName: String(row[3]).trim(),
                                     score: parseInt(row[4]) || 0,
-                                    week: parseInt(row[5]) || 1
+                                    week: parseInt(row[5]) || 1,
+                                    crown: crown,
+                                    crownReason: crown && row[7] !== undefined && row[7] !== null ? String(row[7]).trim() : ''
                                 });
                             }
                         }

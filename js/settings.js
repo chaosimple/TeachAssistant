@@ -32,7 +32,8 @@ const SettingsModule = {
             semesterStart: null,
             semesterEnd: null,
             enableCelebration: true, // 默认启用动态点名效果
-            defaultScore: 0 // 课堂互动选择学生后的默认评分
+            defaultScore: 0, // 课堂互动选择学生后的默认评分
+            defaultCrownReason: '' // 封神理由输入框的预填文字
         };
         return data ? { ...defaultSettings, ...JSON.parse(data) } : defaultSettings;
     },
@@ -85,6 +86,25 @@ const SettingsModule = {
         const btn = document.getElementById('btnClearDefaultScore');
         if (!btn || !this.defaultScoreRating) return;
         btn.style.display = this.defaultScoreRating.getScore() > 0 ? '' : 'none';
+    },
+
+    /**
+     * 获取默认封神理由
+     * @returns {string} 默认理由，未设置时为空字符串
+     */
+    getDefaultCrownReason() {
+        const settings = this.getSettings();
+        return typeof settings.defaultCrownReason === 'string' ? settings.defaultCrownReason.trim() : '';
+    },
+
+    /**
+     * 根据默认封神理由输入框的内容显示或隐藏清除按钮（为空时无需清除）
+     */
+    updateDefaultCrownReasonClearButton() {
+        const btn = document.getElementById('btnClearDefaultCrownReason');
+        const input = document.getElementById('defaultCrownReason');
+        if (!btn || !input) return;
+        btn.style.display = input.value.trim() ? '' : 'none';
     },
 
     /**
@@ -213,6 +233,13 @@ const SettingsModule = {
             this.updateDefaultScoreClearButton();
         }
 
+        // 更新默认封神理由输入框
+        const crownReasonInput = document.getElementById('defaultCrownReason');
+        if (crownReasonInput) {
+            crownReasonInput.value = settings.defaultCrownReason || '';
+            this.updateDefaultCrownReasonClearButton();
+        }
+
         // 更新学期信息显示
         const infoEl = document.getElementById('semesterInfo');
         if (settings.semesterStart && settings.semesterEnd) {
@@ -252,6 +279,8 @@ const SettingsModule = {
         const end = document.getElementById('semesterEnd').value;
         const enableCelebration = document.getElementById('enableCelebration').checked;
         const defaultScore = this.defaultScoreRating ? this.defaultScoreRating.getScore() : 0;
+        const crownReasonInput = document.getElementById('defaultCrownReason');
+        const defaultCrownReason = crownReasonInput ? crownReasonInput.value.trim() : '';
 
         // 学期日期不是必填的，可以只保存其他设置
         if (start && end) {
@@ -266,7 +295,8 @@ const SettingsModule = {
             semesterStart: start || null,
             semesterEnd: end || null,
             enableCelebration: enableCelebration,
-            defaultScore: defaultScore
+            defaultScore: defaultScore,
+            defaultCrownReason: defaultCrownReason
         });
 
         this.updateHeaderDisplay();
@@ -292,6 +322,19 @@ const SettingsModule = {
         document.getElementById('btnClearDefaultScore').addEventListener('click', () => {
             this.defaultScoreRating.setScore(0);
             this.updateDefaultScoreClearButton();
+        });
+
+        // 默认封神理由：输入时联动清除按钮
+        const crownReasonInput = document.getElementById('defaultCrownReason');
+        crownReasonInput.addEventListener('input', () => {
+            this.updateDefaultCrownReasonClearButton();
+        });
+
+        // 清除默认封神理由
+        document.getElementById('btnClearDefaultCrownReason').addEventListener('click', () => {
+            crownReasonInput.value = '';
+            this.updateDefaultCrownReasonClearButton();
+            crownReasonInput.focus();
         });
 
         // 保存按钮
